@@ -1,5 +1,24 @@
 {% load static %}
 <h2 class="mb-4 text-primary">{{ page_title }}</h2>
+{% comment %}
+<div class="mb-3">
+    {% for button in toolbar_buttons %}
+    {% include 'ui/htmx_button.html' with button=button %}
+    {% endfor %}
+</div>
+{% endcomment %}
+<p>Update categories: {{ update_categories }}</p>
+<div style="min-height: 120px;">
+    <div class="collapse collapse-horizontal" id="collapseWidthExample">
+        <div class="border-info card card-body" style="width: 500px;">
+            <strong class="mb-3 text-info">Update:</strong>
+            {% for key, value in update.items %}
+            <p><strong class="float-start text-secondary me-4">{{ key }}: </strong> {{ value }}</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
 <form method="post"
       hx-post="{{ form_action_url }}"
       hx-target="#search-content"
@@ -34,3 +53,16 @@
     {% endfor %}
 
 </form>
+
+
+<main class="main-content" id="search-content">
+    {% if word_search %}
+    <h3 class="mb-4 text-primary">Результат пошуку: {{ word_search }}</h3>
+    {% if drugs %}
+    {% include 'base_table.html' with table=drugs%}
+    {% else %}
+    <p>Препарат {{ word_search }} не знайдено</p>
+    {% endif %}
+
+    {% endif %}
+</main>
