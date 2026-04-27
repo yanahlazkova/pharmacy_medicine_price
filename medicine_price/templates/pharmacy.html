@@ -1,68 +1,20 @@
 {% load static %}
-<h2 class="mb-4 text-primary">{{ page_title }}</h2>
-{% comment %}
-<div class="mb-3">
-    {% for button in toolbar_buttons %}
-    {% include 'ui/htmx_button.html' with button=button %}
-    {% endfor %}
+<div class="card-header bg-info text-white">
+    <h3 class="card-title mb-0"><i class='{{ section.icon }}'></i>{{ page_title }}</h3>
+
+
 </div>
-{% endcomment %}
-<p>Update categories: {{ update_categories }}</p>
-<div style="min-height: 120px;">
-    <div class="collapse collapse-horizontal" id="collapseWidthExample">
-        <div class="border-info card card-body" style="width: 500px;">
-            <strong class="mb-3 text-info">Update:</strong>
-            {% for key, value in update.items %}
-            <p><strong class="float-start text-secondary me-4">{{ key }}: </strong> {{ value }}</p>
-            {% endfor %}
-        </div>
-    </div>
-</div>
+<button hx-get="{% url 'pharmacies:update_categories_apteka911' %}"
+        hx-target="#category-message"
+        hx-swap="innerHTML">
+    Оновити категорії
+</button>
 
-<form method="post"
-      hx-post="{{ form_action_url }}"
-      hx-target="#search-content"
-      hx-swap="innerHTML">
-
-    {% csrf_token %}
-
-    <div class="row mb-3">
-
-        <div class="col-auto">
-            <label for="inputSearch" class="visually-hidden">Пошук ліків: </label>
-            <input type="text"
-                   name="search_query"
-                   class="form-control border-info"
-                   id="inputSearch"
-                   placeholder="Введіть назву ліків..."
-                   value="{{ word_search|default:'' }}">
-        </div>
-
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary mb-3">Знайти</button>
-        </div>
-    </div>
-
-    {% for key, pharm in pharmacy.items %}
-    <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="{{ key }}" checked>
-        <label class="form-check-label text-info" for="{{ key }}">
-            {{ pharm }}
-        </label>
-    </div>
-    {% endfor %}
-
-</form>
-
-
-<main class="main-content" id="search-content">
-    {% if word_search %}
-    <h3 class="mb-4 text-primary">Результат пошуку: {{ word_search }}</h3>
-    {% if drugs %}
-    {% include 'base_table.html' with table=drugs%}
+<div id="category-message">
+    {% if date_update_category %}
+    {{ date_update_category }}
     {% else %}
-    <p>Препарат {{ word_search }} не знайдено</p>
+    <p>Ще немає даних...</p>
     {% endif %}
-
-    {% endif %}
-</main>
+    {{ update_categories }}
+</div>

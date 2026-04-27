@@ -1,0 +1,9 @@
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-body" id="main-content">
+            {% for block in page_content %}
+                {% include block %}
+            {% endfor %}
+        </div>
+    </div>
+</div>

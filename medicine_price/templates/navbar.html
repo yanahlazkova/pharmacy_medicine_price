@@ -10,7 +10,8 @@
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a class="nav-link active" aria-current="page" href="{% url 'home:home' %}">Home</a>
+          <a class="nav-link active" aria-current="page"
+             href="{% url 'home:home' %}">Home</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#">Link</a>
@@ -20,8 +21,20 @@
             Аптеки
           </a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{% url 'pharmacies:apteka911' %}">Аптека 911</a></li>
-            <li><a class="dropdown-item" href="#">Another action</a></li>
+            <li><a class="dropdown-item"
+                   href="{% url 'pharmacies:apteka911' %}"
+                   hx-get="{% url 'pharmacies:apteka911' %}"
+                   hx-target="#main-content"
+                   hx-swap="innerHTML"
+                   hx-push-url="true">
+              Аптека 911
+            </a></li>
+            <li><a class="dropdown-item" href="#"
+                   hx-get="#"
+                   hx-target="#main-content"
+                   hx-swap="innerHTML"
+                   hx-push-url="true">Another action</a></li>
+
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="#">Something else here</a></li>
           </ul>
