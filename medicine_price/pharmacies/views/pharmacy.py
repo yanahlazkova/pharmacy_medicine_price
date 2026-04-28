@@ -5,7 +5,8 @@ from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
 
-class BasePageViewApteka911(HTMXTemplateMixin, TemplateView):
+class BasePageViewApteka911(TemplateView):
+# class BasePageViewApteka911(HTMXTemplateMixin, TemplateView):
     page_content: tuple[str] = ('pharmacy.html',)
     page_title = 'Аптека 911'
     date_update_category = None

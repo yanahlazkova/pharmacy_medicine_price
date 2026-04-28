@@ -1,4 +1,7 @@
+{% extends "base_page.html" %}
 {% load static %}
+
+{% block content %}
 <div class="card-header bg-info text-white">
     <h3 class="card-title mb-0"><i class='{{ section.icon }}'></i>{{ page_title }}</h3>
 
@@ -18,3 +21,4 @@
     {% endif %}
     {{ update_categories }}
 </div>
+{% endblock %}

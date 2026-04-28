@@ -1,4 +1,7 @@
+{% extends "base_page.html" %}
 {% load static %}
+
+{% block content %}
 <h2 class="mb-4 text-primary">{{ page_title }}</h2>
 <form method="post"
       hx-post="{{ form_action_url }}"
@@ -34,3 +37,4 @@
     {% endfor %}
 
 </form>
+{% endblock content %}
