@@ -1,0 +1,71 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg bg-body-tertiary">
+    <div class="container-fluid">
+
+        <!-- ЛІВА ЧАСТИНА -->
+        <div class="d-flex align-items-center">
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'home:home' %}">
+                <img src="{% static 'images/logo-3.png' %}" alt="Logo" height="60" class="me-2">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mb-2 mb-lg-0">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link" href="{% url 'home:home' %}">
+                            Home
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            Аптеки
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item"
+                                   href="{% url 'pharmacies:apteka911' %}"
+                                   hx-get="{% url 'pharmacies:apteka911' %}"
+                                   hx-target="#main-content"
+                                   hx-swap="innerHTML"
+                                   hx-push-url="true">
+                                    Аптека 911
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ЦЕНТР -->
+        <div class="d-flex justify-content-center flex-grow-1">
+            <form class="d-flex w-50" role="search">
+                <div class="form-floating w-100">
+                    <input class="form-control" type="search" placeholder="Search" id="search"/>
+                    <label class="text-info" for="search">
+                        <i class="btn text-info me-2 bi bi-capsule"></i>
+                        Введіть назву...</label>
+                </div>
+                <button class="btn btn-outline-success ms-2" type="submit">Search</button>
+            </form>
+        </div>
+
+        <!-- ПРАВА ЧАСТИНА -->
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-outline-info me-4 text-info">
+                <i class="bi bi-cursor-fill me-2"></i>
+                <span class="me-2">Бориспіль</span>
+            </a>
+            <a>
+                <i class="btn btn-outline-info me-2 bi bi-moon-stars-fill"></i>
+                <i class="btn btn-outline-info me-2 bi bi-brightness-high-fill"></i>
+            </a>
+            <a class="btn btn-outline-info">UA</a>
+
+        </div>
+
+    </div>
+</nav>

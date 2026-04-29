@@ -8,6 +8,8 @@ from pharmacies.models import CategoryApteka911, DrugApteka911
 class BasePageViewApteka911(TemplateView):
 # class BasePageViewApteka911(HTMXTemplateMixin, TemplateView):
     page_content: tuple[str] = ('pharmacy.html',)
+    template_name = "base_page.html"
+    htmx_template_name = 'pharmacy.html'
     page_title = 'Аптека 911'
     date_update_category = None
     list_categories = []
@@ -33,7 +35,7 @@ class BasePageViewApteka911(TemplateView):
         return ctx
 
 
-class UpdateCategoryViewApteka911(UpdateView):
+class UpdateCategoryViewApteka911:
     model = CategoryApteka911
 
     def get_context_data(self, **kwargs):
