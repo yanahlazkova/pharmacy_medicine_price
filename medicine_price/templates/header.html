@@ -4,7 +4,13 @@
 
         <!-- ЛІВА ЧАСТИНА -->
         <div class="d-flex align-items-center">
-            <a class="navbar-brand d-flex align-items-center" href="{% url 'home:home' %}">
+            <a class="navbar-brand d-flex align-items-center"
+               href="{% url 'home:home' %}"
+               hx-get="{% url 'home:home' %}"
+               hx-target="#main-content"
+               hx-swap="innerHTML"
+               hx-push-url="true"
+            >
                 <img src="{% static 'images/logo-3.png' %}" alt="Logo" height="60" class="me-2">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
@@ -15,7 +21,12 @@
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav mb-2 mb-lg-0">
                     <li class="nav-item dropdown">
-                        <a class="nav-link" href="{% url 'home:home' %}">
+                        <a class="nav-link"
+                           href="{% url 'home:home' %}"
+                           hx-get="{% url 'home:home' %}"
+                           hx-target="#main-content"
+                           hx-swap="innerHTML"
+                           hx-push-url="true">
                             Home
                         </a>
                     </li>
@@ -49,7 +60,7 @@
                         <i class="btn text-info me-2 bi bi-capsule"></i>
                         Введіть назву...</label>
                 </div>
-                <button class="btn btn-outline-success ms-2" type="submit">Search</button>
+                <button class="btn btn-outline-success ms-2" type="submit">Знайти</button>
             </form>
         </div>
 
@@ -57,7 +68,7 @@
         <div class="d-flex align-items-center gap-2">
             <a class="btn btn-outline-info me-4 text-info">
                 <i class="bi bi-cursor-fill me-2"></i>
-                <span class="me-2">Бориспіль</span>
+                <span class="me-2">м.Бориспіль</span>
             </a>
             <a>
                 <i class="btn btn-outline-info me-2 bi bi-moon-stars-fill"></i>

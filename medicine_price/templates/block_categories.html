@@ -1,0 +1,20 @@
+{% load static %}
+
+<div class="card-body">
+    <div class="bd-callout bd-callout-info border-left-color-info" id="category-message">
+        {% if date_update_category %}
+        {{ date_update_category }}
+        {% else %}
+        <p>Ще немає даних...</p>
+        {% endif %}
+        {{ update_categories }}
+    </div>
+
+
+    <a class="btn btn-outline-info"
+       hx-get="{% url 'pharmacies:update_categories_apteka911' %}"
+       hx-target="#category-message"
+       hx-swap="innerHTML">
+        Оновити категорії
+    </a>
+</div>

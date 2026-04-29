@@ -1,24 +1,63 @@
-{% extends "base_page.html" %}
 {% load static %}
 
-{% block content %}
-<div class="card-header bg-info text-white">
-    <h3 class="card-title mb-0"><i class='{{ section.icon }}'></i>{{ page_title }}</h3>
+<h2 class="mb-4 text-info text-center">{{ page_title }}</h2>
 
+<div class="container mt-4">
+    <div class="card">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link active"
+                   hx-get="{% url 'pharmacies:apteka911' %}"
+                   hx-target="#tab-content-category"
+                   hx-swap="innerHTML">
+                    Категорії
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link"
+                   hx-get="{% url 'pharmacies:apteka911' %}"
+                   hx-target="#tab-content-drugs"
+                   hx-swap="innerHTML">
+                    Ліки
+                </a>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button"
+                   aria-expanded="false">Dropdown</a>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#">Action</a></li>
+                    <li><a class="dropdown-item" href="#">Another action</a></li>
+                    <li><a class="dropdown-item" href="#">Something else here</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item" href="#">Separated link</a></li>
+                </ul>
+            </li>
 
+            <li class="nav-item">
+                <a class="nav-link disabled" aria-disabled="true">Disabled</a>
+            </li>
+        </ul>
+        <div id="tab-content-category">
+            {% include 'block_categories.html' %}
+        </div>
+        {% comment %}
+        <div id="tab-content-drugs">
+            {% include 'block_categories.html' %}
+        </div>
+        {% endcomment %}
+    </div>
 </div>
-<button hx-get="{% url 'pharmacies:update_categories_apteka911' %}"
-        hx-target="#category-message"
-        hx-swap="innerHTML">
-    Оновити категорії
-</button>
+{% comment %}
 
-<div class="bd-callout bd-callout-info border-left-color-info" id="category-message">
-    {% if date_update_category %}
-    {{ date_update_category }}
-    {% else %}
-    <p>Ще немає даних...</p>
-    {% endif %}
-    {{ update_categories }}
-</div>
-{% endblock %}
+<script>
+    document.body.addEventListener('click', function(e) {
+        if (e.target.classList.contains('nav-link')) {
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'))
+            e.target.classList.add('active')
+        }
+    })
+</script>
+
+{% endcomment %}

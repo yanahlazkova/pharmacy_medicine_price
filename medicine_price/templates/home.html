@@ -1,40 +1,43 @@
-{% extends "base_page.html" %}
 {% load static %}
 
-{% block content %}
-<h2 class="mb-4 text-primary">{{ page_title }}</h2>
-<form method="post"
-      hx-post="{{ form_action_url }}"
-      hx-target="#search-content"
-      hx-swap="innerHTML">
+<h2 class="mb-4 text-info text-center">{{ page_title }}</h2>
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-body">
+            <form method="post"
+                  hx-post="{{ form_action_url }}"
+                  hx-target="#search-content"
+                  hx-swap="innerHTML">
 
-    {% csrf_token %}
+                {% csrf_token %}
 
-    <div class="row mb-3">
+                <div class="row mb-3">
 
-        <div class="col-auto">
-            <label for="inputSearch" class="visually-hidden">Пошук ліків: </label>
-            <input type="text"
-                   name="search_query"
-                   class="form-control border-info"
-                   id="inputSearch"
-                   placeholder="Введіть назву ліків..."
-                   value="{{ word_search|default:'' }}">
-        </div>
+                    <div class="col-auto">
+                        <label for="inputSearch" class="visually-hidden">Пошук ліків: </label>
+                        <input type="text"
+                               name="search_query"
+                               class="form-control border-info"
+                               id="inputSearch"
+                               placeholder="Введіть назву ліків..."
+                               value="{{ word_search|default:'' }}">
+                    </div>
 
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary mb-3">Знайти</button>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary mb-3">Знайти</button>
+                    </div>
+                </div>
+
+                {% for key, pharm in pharmacy.items %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="" id="{{ key }}" checked>
+                    <label class="form-check-label text-info" for="{{ key }}">
+                        {{ pharm }}
+                    </label>
+                </div>
+                {% endfor %}
+
+            </form>
         </div>
     </div>
-
-    {% for key, pharm in pharmacy.items %}
-    <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="{{ key }}" checked>
-        <label class="form-check-label text-info" for="{{ key }}">
-            {{ pharm }}
-        </label>
-    </div>
-    {% endfor %}
-
-</form>
-{% endblock content %}
+</div>

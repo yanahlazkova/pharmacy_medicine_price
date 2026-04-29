@@ -1,12 +1,12 @@
 from django.shortcuts import render
-from django.views.generic import TemplateView, UpdateView
+from django.views.generic import TemplateView, UpdateView, ListView
 
 from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
 
-class BasePageViewApteka911(TemplateView):
-# class BasePageViewApteka911(HTMXTemplateMixin, TemplateView):
+# class BasePageViewApteka911(TemplateView):
+class BasePageViewApteka911(HTMXTemplateMixin, TemplateView):
     page_content: tuple[str] = ('pharmacy.html',)
     template_name = "base_page.html"
     htmx_template_name = 'pharmacy.html'
@@ -35,16 +35,18 @@ class BasePageViewApteka911(TemplateView):
         return ctx
 
 
-class UpdateCategoryViewApteka911:
+class UpdateCategoryViewApteka911(HTMXTemplateMixin, ListView):
     model = CategoryApteka911
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        obj = CategoryApteka911.objects.all()
+        obj = CategoryApteka911.objects.all().order_by('-update_at').first()
         ctx.update({
-            'update_category': 'Categories update',
+            'update_category': obj['update_at'] if obj else 'Ще немає даних...',
         })
         return ctx
+
+
 def update_categoriesy_apteka911(request):
     return render(request, 'pharmacy.html', context={
     'update_categories': 'Categories update',
