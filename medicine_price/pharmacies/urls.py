@@ -7,5 +7,5 @@ app_name = 'pharmacies'
 
 urlpatterns = [
     path('apteka911/', BasePageViewApteka911.as_view(), name='apteka911'),
-    path('apteka911/update_categories/', UpdateCategoryViewApteka911.as_view(), name='update_categories_apteka911'),
+    path('apteka911/update_categories/', UpdateCategoryViewApteka911.as_view(), name='update_cat_apteka911'),
 ]

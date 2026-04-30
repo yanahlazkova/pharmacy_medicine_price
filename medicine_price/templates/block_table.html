@@ -1,0 +1,45 @@
+{% load static %}
+<div class="container">
+    <h1 class="mt-3 text-info">{{ table.name }}</h1>
+    <hr>
+
+    <div class="mb-3">
+        {% for button in table.toolbar_buttons %}
+        {% include "ui/htmx_button.html" with button=button %}
+        {% endfor %}
+    </div>
+
+    <table class="table table-sm table-success table-striped table-bordered table-success table align-bottom table-hover mt-3">
+        <thead>
+        <tr class="table-info">
+            <th scope="col">№</th>
+            {% for table_title in table.table_titles %}
+            <th scope="col">{{ table_title|capfirst }}</th>
+            {% endfor %}
+        </tr>
+        </thead>
+        <tbody class="table-group-divider">
+        {% for row in table.table_content %}
+        <tr role="button"
+            tabindex="0"
+            hx-get="{{ row.row_url }}"
+            hx-target="#main-content"
+            hx-push-url="true"
+            onkeypress="if(event.key === 'Enter') this.click();"
+            style="cursor: pointer;"
+        >
+            <td style="color: lightblue">{{ forloop.counter }}</td>
+
+            {% for key, value in row.values.items %}
+            {% if key != 'id' %}
+            <td>{{ value | default:'-' }}</td>
+            {% endif %}
+            {% endfor %}
+
+        </tr>
+        {% endfor %}
+
+        </tbody>
+    </table>
+</div>
+
