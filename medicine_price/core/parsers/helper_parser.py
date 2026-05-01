@@ -215,7 +215,6 @@ def save_to_file_categories(categories):
 #
 #     return categories
 
-
 def update_categories_db(categories):
     """ оновлення категорій в БД """
     for cat in categories:
