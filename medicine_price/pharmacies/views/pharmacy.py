@@ -1,6 +1,6 @@
 from django.views.generic import TemplateView, ListView
 
-from core.parsers.helper_parser import get_categories_whith_page_cite_apteka911, update_categories_db
+from core.parsers.helper_parser import update_categories_db, get_categories_apteka911
 from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
@@ -51,7 +51,7 @@ class UpdateCategoryViewApteka911(HTMXTemplateMixin, ListView):
     model = CategoryApteka911
 
     def update_categories(self):
-        categories = get_categories_whith_page_cite_apteka911()
+        categories = get_categories_apteka911()
         update_categories_db(categories)
         return self.model.objects.all()
 
