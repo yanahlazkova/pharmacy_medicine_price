@@ -87,9 +87,8 @@ def get_menu_categories():
 
 
 def save_to_file_categories(categories):
-    with open('../categories.json', 'w') as f:
-        file_content = f.read()
-        cats_json = json.loads(categories)
+    with open('categories.json', 'w') as f:
+        json.dump(categories, f, indent=4)
 
 
 def get_categories_whith_page_cite_apteka911():
