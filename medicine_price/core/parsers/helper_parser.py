@@ -16,7 +16,84 @@ from pharmacies.models import CategoryApteka911
 SEEN_URLS = set()
 
 
+def get_menu_categories():
+    ua = UserAgent()
+    session = requests.Session()
+    url = 'https://apteka911.ua/ua'
+
+    response = session.get(url, headers={"User-Agent": ua.random})
+
+    headers = {
+        "accept": "application/json, text/javascript, */*; q=0.01",
+        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "x-requested-with": "XMLHttpRequest",  # КРИТИЧНО: саме це каже серверу віддати JSON
+        # Referer має бути ПОВНИМ URL сторінки препарату
+        "referer": f"https://apteka911.ua/ua",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    session.cookies.update({
+        'site_version': 'desktop',
+        'wucmf_region': '89',
+        # 'PHPSESSID': '601c139cc7ac20fdcbecfdfd55095eb8'
+    })
+
+    try:
+        response = session.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        html = response.text
+        soup = BeautifulSoup(html, 'html.parser')
+
+        templates = soup.find_all('script', {'type': 'text/x-template'})
+
+        for tpl in templates:
+            if 'menu-catalog__list' in tpl.text:
+                inner_soup = BeautifulSoup(tpl.text, 'html.parser')
+                main_menu = inner_soup.find_all('ul', class_='menu-catalog__list')
+                # menu_categories = main_menu[0].contents
+                # for child in menu_categories:
+                #     print(child.get_text(strip=True))
+                #     print(child)
+                #     print(child.next_sibling)
+                # print(menu_categories)
+                # soup2 = BeautifulSoup(main_menu, 'html.parser')
+
+                categories = []
+
+                for a in main_menu[0].select('a[data-link-self-path]'):
+                    name = a.get_text(strip=True)
+                    path = a.get('data-link-self-path')
+
+                    if not path:
+                        continue
+
+                    url = urljoin('https://apteka911.ua', path)
+
+                    if path and path in SEEN_URLS:
+                        continue
+                    else:
+                        SEEN_URLS.add(url)
+
+                        categories.append({
+                            "name": name,
+                            "url": url
+                        })
+
+                return categories
+
+
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP error: {e}")
+        return None
+
+
+def save_to_file_categories(categories):
+    with open('../categories.json', 'w') as f:
+        file_content = f.read()
+        cats_json = json.loads(categories)
+
+
 def get_categories_whith_page_cite_apteka911():
+    """ отримуємо категорії зі сторінки сайту """
     driver = webdriver.Chrome()
     driver.get("https://apteka911.ua/ua/")
 
@@ -44,19 +121,22 @@ def get_categories_whith_page_cite_apteka911():
             url = item.find_element(By.CSS_SELECTOR, "a[itemprop='url']").get_attribute("href")
 
             if url and url in SEEN_URLS:
+                # деякі url повторюються, пропустимо їх
                 continue
             else:
+                # якщо url ще не зустрічався, додамо у SEEN_URLS
                 SEEN_URLS.add(url)
 
                 categories.append({
                     "name": name,
                     "url": url
                 })
+                # перевірка чи існують підкатегорії
                 categories += check_category_tree_html(url)
         except:
             continue
 
-    # записати у файл json
+    # записати у файл json для подальшого завантаження у БД
     with open('categories.json', 'w') as f:
         json.dump(categories, f, indent=4)
 
@@ -64,6 +144,9 @@ def get_categories_whith_page_cite_apteka911():
 
 
 def check_category_tree_html(url: str):
+    """ перевірка сторінки за знайденим url, це JSON чи HTML-сторінка.
+    Якщо HTML-сторінка - робимо парсинг сторінки і знаходимо нові url """
+
     ua = UserAgent()
     session = requests.Session()
 
@@ -111,6 +194,7 @@ def get_categories_tree_with_html(html):
     script = soup.find('script', {'type': 'text/x-template'})
     if not script:
         print("❌ script не знайдено")
+        return None
 
     template_html = script.string
 
@@ -148,5 +232,3 @@ def update_categories_db(categories):
             defaults={"name": cat['name']},
         )
         print(obj_category)
-
-

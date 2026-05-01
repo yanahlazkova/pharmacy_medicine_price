@@ -1,7 +1,6 @@
-from django.shortcuts import render
-from django.views.generic import TemplateView, UpdateView, ListView
+from django.views.generic import TemplateView, ListView
 
-from pharmacies.helper import get_categories_whith_page_cite_apteka911, update_categories_db
+from core.parsers.helper_parser import get_categories_whith_page_cite_apteka911, update_categories_db
 from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
