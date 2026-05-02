@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'home.apps.HomeConfig',
+    'pharmacies.apps.PharmaciesConfig',
 ]
 
 MIDDLEWARE = [
@@ -55,7 +57,7 @@ ROOT_URLCONF = 'medicine_price.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates',],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -117,4 +119,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'static'
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static')   # мої файли
+]
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # для продакшена
