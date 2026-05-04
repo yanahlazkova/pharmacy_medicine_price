@@ -32,3 +32,4 @@ class HomePageView(HTMXTemplateMixin, TemplateView):
         return ctx
 
 
+

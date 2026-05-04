@@ -1,6 +1,7 @@
 from django.views.generic import TemplateView, ListView
 
-from core.parsers.helper_parser import update_categories_db, get_categories_apteka911
+from core.parsers.apteka911.helper_apteka911 import get_categories_apteka911, update_categories_db, \
+    update_drugs_apteka911
 from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
@@ -67,6 +68,21 @@ class UpdateCategoryViewApteka911(HTMXTemplateMixin, ListView):
             }
         })
         return ctx
+
+
+class UpdateDrugsViewApteka911(HTMXTemplateMixin, ListView):
+    model = DrugApteka911
+
+    def update_drugs(self):
+        categories_url = CategoryApteka911.objects.values_list('url', 'name')
+        update_drugs_apteka911(categories_url)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        self.update_drugs()
+
+        return ctx
+
 
 # class PharmacyUpdateCategory(PharmacyBaseView, HTMXTemplateMixin, ToolbarMixin, TemplateView):
 #     # page_content = ('pharmacy.html',)

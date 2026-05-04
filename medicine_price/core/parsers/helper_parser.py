@@ -14,6 +14,7 @@ from urllib.parse import urljoin
 from pharmacies.models import CategoryApteka911
 
 SEEN_URLS = set()
+LIST_PREPARATY = []
 
 
 def get_categories_apteka911():
@@ -82,6 +83,120 @@ def get_categories_apteka911():
 def save_to_file_categories(categories):
     with open('categories.json', 'w') as f:
         json.dump(categories, f, indent=4)
+
+
+def update_categories_db(categories):
+    """ оновлення категорій в БД """
+    for cat in categories:
+        obj_category, _ = CategoryApteka911.objects.update_or_create(
+            url=cat['url'],
+            defaults={"name": cat['name']},
+        )
+        print(obj_category)
+
+
+""" парсер препаратів Аптека911 """
+
+def update_drugs_apteka911(categories):
+    ua = UserAgent()
+    base_url = 'https://apteka911.ua/ua'
+    session = requests.Session()
+
+    response = session.get(base_url, headers={'User-Agent': ua.random})
+
+    headers_base = {
+        "accept": "application/json, text/javascript, */*; q=0.01",
+        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "x-requested-with": "XMLHttpRequest",  # КРИТИЧНО: саме це каже серверу віддати JSON
+        # Referer має бути ПОВНИМ URL сторінки препарату
+        "referer": base_url,
+        "user-agent": ua.random,
+    }
+
+    session.cookies.update({
+        'site_version': 'desktop',
+        'wucmf_region': '89',
+        # 'PHPSESSID': '601c139cc7ac20fdcbecfdfd55095eb8'
+    })
+
+    for category in categories:
+        url, name = category
+        # Змінюємо User-Agent для кожного запиту
+        headers = headers_base.copy()
+        headers['User-Agent'] = ua.random
+
+        try:
+            response = session.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            content_type = response.headers.get('Content-Type', '').lower()
+
+            # перевірка сторінки за url, це JSON чи HTML-сторінка
+            if 'application/json' in content_type:
+                data = response.json()
+                get_data_with_json(url, data['data'], session)
+                print("Це JSON")
+                return None
+
+            elif 'text/html' in content_type:
+                html = response.text
+                # categories_tree = get_categories_tree_with_html(html)
+                print("Це HTML")
+                # return categories_tree
+
+            else:
+                print(f"Невідомий тип: {content_type}")
+                return None
+        except requests.exceptions.HTTPError as e:
+            print(f"HTTP error: {e}")
+            return None
+
+
+def get_data_with_json(url, data: dict, session):
+    count_pages = data['pages']['npages']
+    if count_pages > 1:
+        ua = UserAgent()
+        session = requests.Session()
+        base_url = 'https://apteka911.ua/ua'
+
+        response = session.get(base_url, headers={'User-Agent': ua.random})
+
+        headers_base = {
+            "accept": "application/json, text/javascript, */*; q=0.01",
+            "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "x-requested-with": "XMLHttpRequest",  # КРИТИЧНО: саме це каже серверу віддати JSON
+            # Referer має бути ПОВНИМ URL сторінки препарату
+            "referer": base_url,
+            "user-agent": ua.random,
+        }
+
+        session.cookies.update({
+            'site_version': 'desktop',
+            'wucmf_region': '89',
+            # 'PHPSESSID': '601c139cc7ac20fdcbecfdfd55095eb8'
+        })
+
+        # робимо сесію для кожної сторінки з інтервалом 5 сек.
+        for page in range(2, count_pages + 1):
+
+
+            url_page = f'{url}/page={page}'
+            drugs = get_ajax_products(url_page, headers_base, session)
+
+    else:
+        LIST_PREPARATY.append({
+            url: data['ajax_products']
+        })
+
+
+def get_ajax_products(url: str, headers_base, session):
+    # Змінюємо User-Agent для кожного запиту
+    ua = UserAgent()
+    headers = headers_base.copy()
+    headers['User-Agent'] = ua.random
+    response = session.get(url, headers=headers, timeout=10)
+    response.raise_for_status()
+    data = response.json()
+
 
 
 # def get_categories_whith_page_cite_apteka911():
@@ -215,11 +330,4 @@ def save_to_file_categories(categories):
 #
 #     return categories
 
-def update_categories_db(categories):
-    """ оновлення категорій в БД """
-    for cat in categories:
-        obj_category, _ = CategoryApteka911.objects.update_or_create(
-            url=cat['url'],
-            defaults={"name": cat['name']},
-        )
-        print(obj_category)
+
