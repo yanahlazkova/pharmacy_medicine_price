@@ -15,7 +15,7 @@ from urllib.parse import urljoin
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
 SEEN_URLS = set()
-LIST_PREPARATY = []
+LIST_PREPARATY: list[dict] = []
 
 """ парсер html-сторінки Головного меню (Категорії) """
 
@@ -109,6 +109,8 @@ def update_drugs_apteka911(categories):
 
         parse_category(session, url)
 
+    save_to_file(LIST_PREPARATY, "apteka911.json")
+
 
 def create_session():
     ua = UserAgent()
@@ -145,28 +147,24 @@ def fetch_page(session, url):
     return None
 
 
-def add_list(products):
+def add_to_list(products, category_url):
     included_fields = [f.name for f in DrugApteka911._meta.fields if
                        f.name != 'id' and f.name != 'img' and f.name != 'category'
                        and f.name != 'time_created' and f.name != 'time_updated']
-
     for product in products:
-        drug = {}
+        drug = {'category': category_url}
         for field in included_fields:
-            drug = {
-                field: product[field]
-            }
+            drug[field] = product.get(field, None)
+
         LIST_PREPARATY.append(drug)
 
 
-
-
-
-def parse_category(session, url):
+def parse_category(session, category_url):
     page = 1
 
-    while True:
-        paged_url = f"{url}?PAGEN_1={page}"
+    # while True:
+    while page <= 50:
+        paged_url = f"{category_url}?PAGEN_1={page}"
 
         data = fetch_page(session, paged_url)
 
@@ -174,7 +172,8 @@ def parse_category(session, url):
             break
 
         products = data.get("data", {}).get("ajax_products", [])
-        add_list(products)
+
+        add_to_list(products, category_url)
 
         if not products:
             break
@@ -185,3 +184,4 @@ def parse_category(session, url):
 
         # anti-rate limit
         time.sleep(random.uniform(1, 3))
+

@@ -14,13 +14,14 @@ class CategoryApteka911(models.Model):
 
 class DrugApteka911(models.Model):
     productID = models.IntegerField(unique=True)
-    category = models.ForeignKey(
-        CategoryApteka911,
-        on_delete=models.CASCADE,
-        related_name='drugs',
-        blank=True,
-        null=True,
-    )
+    # category = models.ForeignKey(
+    #     CategoryApteka911,
+    #     on_delete=models.CASCADE,
+    #     related_name='drugs',
+    #     blank=True,
+    #     null=True,
+    # )
+    category = models.URLField(verbose_name='url категорії', blank=True, null=True)
     productName = models.CharField(max_length=255, verbose_name="Назва препарату")
     alias = models.CharField(max_length=255, blank=True, null=True)
     brandName = models.CharField(max_length=255, blank=True, null=True)

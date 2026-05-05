@@ -1,7 +1,7 @@
 from django.views.generic import TemplateView, ListView
 
 from core.parsers.apteka911.helper_apteka911 import get_categories_apteka911, update_categories_db, \
-    update_drugs_apteka911
+    update_drugs_apteka911, save_to_file
 from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
