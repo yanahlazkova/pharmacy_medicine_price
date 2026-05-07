@@ -28,7 +28,7 @@ class DrugApteka911(models.Model):
     formName = models.CharField(max_length=255, blank=True, null=True)
     productAvail = models.BooleanField(default=True, verbose_name="Доступність")
     productCountry = models.CharField(max_length=255, blank=True, null=True)
-    productForm = models.CharField(max_length=255, verbose_name="Форма випуску")
+    productForm = models.CharField(max_length=255, verbose_name="Форма випуску", blank=True, null=True)
     productMeasure = models.CharField(max_length=255, blank=True, null=True)
     productMname = models.CharField(max_length=255, blank=True, null=True)
     productPrice = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Ціна, від")

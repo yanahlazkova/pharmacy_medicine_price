@@ -53,9 +53,17 @@
 
         <!-- ЦЕНТР -->
         <div class="d-flex justify-content-center flex-grow-1">
-            <form class="d-flex w-50" role="search">
+            <form class="d-flex w-50"
+                  role="search"
+                  hx-post="{% url 'home:search' %}"
+                  hx-target="#search-content"
+                  hx-swap="innerHTML">
+
+                {% csrf_token %}
+
                 <div class="form-floating w-100">
-                    <input class="form-control" type="search" placeholder="Search" id="search"/>
+                    <!-- Ключове: name="q" дозволить Django отримати дані -->
+                    <input class="form-control" name='q' type="search" placeholder="Search" id="search"/>
                     <label class="text-info" for="search">
                         <i class="btn text-info me-2 bi bi-capsule"></i>
                         Введіть назву...</label>
