@@ -13,7 +13,7 @@ from pharmacies.models import CategoryApteka911, DrugApteka911
 SEEN_URLS = set()  # для збору url категорій
 
 SEEN_PRODUCT_ID = set()  # для збору id препаратів
-EXISTING_PRODUCTS = set()  # існучі в БД
+EXISTING_PRODUCTS: list[dict] = []  # існучі в БД
 BATCH_TO_CREATE: list[dict] = []  # партія/пакет для створення
 BATCH_TO_UPDATE: list[dict] = []  # партія/пакет для оновлення
 
@@ -156,14 +156,30 @@ def build_image_url(drug):
             return None
 
 
+def create_obj_model_drug_apteka911(product, category_url):
+    included_fields = [f.name for f in DrugApteka911._meta.fields if
+                       f.name != 'productAvail' and
+                       f.name != 'id' and f.name != 'img' and f.name != 'category'
+                       and f.name != 'time_created' and f.name != 'time_updated']
+
+    drug_data = {}
+    for field in included_fields:
+        drug_data[field] = product.get(field, None)
+
+    drug_data['category'] = category_url
+    drug_data['productAvail'] = True if product.get('productAvail') == 'yes' else False
+    # отримання даних картинки
+    drug_data['img'] = build_image_url(product)
+
+    obj = DrugApteka911(**drug_data)
+    return obj
+
+
 def prepare_drug_for_sync(products, category_url):
     """ перевіряє дублікати
         визначає create/update
         готує об’єкт"""
 
-    # included_fields = [f.name for f in DrugApteka911._meta.fields if
-    #                    f.name != 'id' and f.name != 'img' and f.name != 'category'
-    #                    and f.name != 'time_created' and f.name != 'time_updated']
     for product in products:
 
         product_id = product.get('productID')
@@ -173,36 +189,16 @@ def prepare_drug_for_sync(products, category_url):
         else:
             SEEN_PRODUCT_ID.add(product_id)
 
-        # for field in included_fields:
-        #     drug[field] = product.get(field, None)
-        #
-        # drug['category'] = category_url
-        # # отримання даних картинки
-        # drug['img'] = build_image_url(product)
-        # drug['productAvail'] = True if product.get('productAvail') == 'yes' else False
+        # створити об'єкт-модель
+        drug_obj = create_obj_model_drug_apteka911(product, category_url)
 
         # є в БД → update
-        drug = DrugApteka911(
-            productID=product_id,
-            category=category_url,# drug['category'],
-            productName=product.get('productName'),# drug['productName'],
-            alias=product.get('alias'),# drug['alias'],
-            brandName=product.get('brandName'),# drug['brandName'],
-            formName=product.get('formName'),# drug['formName'],
-            productAvail=True if product.gproductAvailet('productAvail') == 'yes' else False, # drug['productAvail'] == 'yes' else False,
-            productCountry=product.get('productCountry'),# drug['productCountry'],
-            productForm=product.get('productForm'),# drug['productForm'],
-            productMeasure=product.get('productMeasure'),# drug['productMeasure'],
-            productMname=product.get('productMname'),# drug['productMname'],
-            productPrice=product.get('productPrice'),# drug['productPrice'],
-            img=build_image_url(product),# drug['img']
-        )
-        if product_id in EXISTING_PRODUCTS:
-            # existing_drug = EXISTING_PRODUCTS[product_id]
-            BATCH_TO_UPDATE.append(drug)
+        if product_id not in EXISTING_PRODUCTS:
+            BATCH_TO_CREATE.append(drug_obj)
         # нема → create
         else:
-            BATCH_TO_CREATE.append(drug)
+            drug_obj.id = EXISTING_PRODUCTS[product_id]  # .get(product_id)
+            BATCH_TO_UPDATE.append(drug_obj)
 
 
 def parse_category(session, category_url):
@@ -235,9 +231,7 @@ def parse_category(session, category_url):
 
         if requests_count % 50 == 0:
             # save_to_file(LIST_PREPARATY, 'apteka911.json')
-            save_to_db()
-            BATCH_TO_UPDATE.clear()
-            BATCH_TO_CREATE.clear()
+
             time.sleep(random.uniform(20, 40))
 
 
@@ -268,35 +262,14 @@ def save_to_db():
     except Exception as e:
         print(f"[DB ERROR] (insert): {e}")
 
-    # for drug in BATCH_TO_CREATE:
-    #     try:
-    #         DrugApteka911.objects.update_or_create(
-    #             productID=drug['productID'],
-    #             defaults={
-    #                 'category': drug['category'],
-    #                 'productName': drug['productName'],
-    #                 'alias': drug['alias'],
-    #                 'brandName': drug['brandName'],
-    #                 'formName': drug['formName'],
-    #                 'productAvail': True if drug['productAvail'] == 'yes' else False,
-    #                 'productCountry': drug['productCountry'],
-    #                 'productForm': drug['productForm'],
-    #                 'productMeasure': drug['productMeasure'],
-    #                 'productMname': drug['productMname'],
-    #                 'productPrice': drug['productPrice'],
-    #                 'img': drug['img'],
-    #
-    #                 # 'img': f"https://apteka911.ua{drug.get('dataUrl', '')}{drug.get('productThumbs', {}).get('webpmid', {}).get('file', '')}",
-    #
-    #             }
-    #         )
-
 
 def update_drugs_apteka911(categories):
-    EXISTING_PRODUCTS.update({
-        drug.productID: drug
-        for drug in DrugApteka911.objects.all()
-    })
+    global EXISTING_PRODUCTS
+    EXISTING_PRODUCTS = {
+        drug.productID: drug.id
+        for drug in DrugApteka911.objects.only('id', 'productID')
+    }
+
     session = create_session()
     count = 0
     for cat in categories:
@@ -306,5 +279,41 @@ def update_drugs_apteka911(categories):
 
         parse_category(session, url)
 
-    # save_to_file(LIST_PREPARATY, "apteka911.json")
-    # save_to_db()
+        if len(BATCH_TO_UPDATE) >= 500 or len(BATCH_TO_CREATE) >= 500:
+            save_to_db()
+            BATCH_TO_UPDATE.clear()
+            BATCH_TO_CREATE.clear()
+
+    save_to_db()
+
+
+""" Search """
+
+
+
+
+
+def search_preparaty(query):
+    session = create_session()
+
+    api_url = "https://apteka911.ua/ua/shop/search"
+
+    payload = {
+        'q': query,
+    }
+
+    try:
+        # ЗАПИТ ДО API ЗА КИРИЛИЧНОЮ НАЗВОЮ
+        response = session.post(api_url, headers=session.headers, data=payload, timeout=10)
+        response.raise_for_status()
+        json_data = response.json()
+        alias_category = json_data.get("data", {}).get("results", [])[0]['alias']
+        url_category = f'https://apteka911.ua/ua{alias_category}'
+        res = session.post(url_category, headers=session.headers, timeout=10)
+        res.raise_for_status()
+        json_data = res.json()
+        return json_data
+
+    except Exception as e:
+        print(f"Помилка: {e}")
+        time.sleep(10)  # Довша пауза при помилці
