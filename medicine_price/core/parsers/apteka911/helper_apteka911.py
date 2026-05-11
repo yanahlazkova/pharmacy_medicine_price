@@ -5,6 +5,7 @@ import requests
 import random
 
 from bs4 import BeautifulSoup
+from django.db.models.functions import Lower
 from fake_useragent import UserAgent
 from urllib.parse import urljoin
 
@@ -159,6 +160,7 @@ def build_image_url(drug):
 def create_obj_model_drug_apteka911(product, category_url):
     included_fields = [f.name for f in DrugApteka911._meta.fields if
                        f.name != 'productAvail' and
+                       f.name != 'productNameNormalized' and
                        f.name != 'id' and f.name != 'img' and f.name != 'category'
                        and f.name != 'time_created' and f.name != 'time_updated']
 
@@ -167,6 +169,7 @@ def create_obj_model_drug_apteka911(product, category_url):
         drug_data[field] = product.get(field, None)
 
     drug_data['category'] = category_url
+    drug_data['productNameNormalized'] = drug_data['productName'].casefold()
     drug_data['productAvail'] = True if product.get('productAvail') == 'yes' else False
     # отримання даних картинки
     drug_data['img'] = build_image_url(product)
@@ -236,34 +239,36 @@ def parse_category(session, category_url):
 
 
 def save_to_db():
-    try:
-        DrugApteka911.objects.bulk_update(BATCH_TO_UPDATE,
-                                          ['category',
-                                           'img',
-                                           'productName',
-                                           'alias',
-                                           'brandName',
-                                           'formName',
-                                           'productAvail',
-                                           'productCountry',
-                                           'productForm',
-                                           'productMeasure',
-                                           'productMname',
-                                           'productPrice',
-                                           ], batch_size=100)
-        print(f'update {len(BATCH_TO_UPDATE)} products')
-    except Exception as e:
-        print(f"[DB ERROR] (update): {e}")
+    if BATCH_TO_UPDATE:
+        try:
+            DrugApteka911.objects.bulk_update(BATCH_TO_UPDATE,
+                                              ['category',
+                                               'img',
+                                               'productName',
+                                               'productNameNormalized',
+                                               'alias',
+                                               'brandName',
+                                               'formName',
+                                               'productAvail',
+                                               'productCountry',
+                                               'productForm',
+                                               'productMeasure',
+                                               'productMname',
+                                               'productPrice',
+                                               ], batch_size=100)
+            print(f'update {len(BATCH_TO_UPDATE)} products')
+        except Exception as e:
+            print(f"[DB ERROR] (update): {e}")
+    if BATCH_TO_CREATE:
+        try:
+            DrugApteka911.objects.bulk_create(BATCH_TO_CREATE, batch_size=100)
+            print(f'create {len(BATCH_TO_CREATE)} products')
 
-    try:
-        DrugApteka911.objects.bulk_create(BATCH_TO_CREATE, batch_size=100)
-        print(f'create {len(BATCH_TO_CREATE)} products')
-
-    except Exception as e:
-        print(f"[DB ERROR] (insert): {e}")
+        except Exception as e:
+            print(f"[DB ERROR] (insert): {e}")
 
 
-def update_drugs_apteka911(categories):
+def update_all_drugs_apteka911(categories):
     global EXISTING_PRODUCTS
     EXISTING_PRODUCTS = {
         drug.productID: drug.id
@@ -289,31 +294,68 @@ def update_drugs_apteka911(categories):
 
 """ Search """
 
+def update_drugs_apteka911(product_name):
+    drugs = DrugApteka911.objects.filter(productNameNormalized__icontains=product_name)
+    for drug in drugs:
+        print(f'{drug.productName}({drug.category}): {drug.productPrice}')
 
-
-
-
-def search_preparaty(query):
-    session = create_session()
-
-    api_url = "https://apteka911.ua/ua/shop/search"
-
-    payload = {
-        'q': query,
+    global EXISTING_PRODUCTS
+    EXISTING_PRODUCTS = {
+        drug.productID: drug.id
+        for drug in drugs
     }
 
-    try:
-        # ЗАПИТ ДО API ЗА КИРИЛИЧНОЮ НАЗВОЮ
-        response = session.post(api_url, headers=session.headers, data=payload, timeout=10)
-        response.raise_for_status()
-        json_data = response.json()
-        alias_category = json_data.get("data", {}).get("results", [])[0]['alias']
-        url_category = f'https://apteka911.ua/ua{alias_category}'
-        res = session.post(url_category, headers=session.headers, timeout=10)
-        res.raise_for_status()
-        json_data = res.json()
-        return json_data
+    existing_url_categories = set(drug.category for drug in drugs)
 
-    except Exception as e:
-        print(f"Помилка: {e}")
-        time.sleep(10)  # Довша пауза при помилці
+    session = create_session()
+
+    for url_category in existing_url_categories:
+
+        parse_category(session, url_category)
+
+        if len(BATCH_TO_UPDATE) >= 500 or len(BATCH_TO_CREATE) >= 500:
+            save_to_db()
+            BATCH_TO_UPDATE.clear()
+            BATCH_TO_CREATE.clear()
+    save_to_db()
+
+
+# def search_drugs(search_term):
+#     search_term = search_term.strip().lower()
+#
+#     return (
+#         DrugApteka911.objects
+#         .annotate(
+#             product_name_lower=Lower('productName')
+#         )
+#         .filter(
+#             product_name_lower__contains=search_term
+#         )
+#     )
+
+
+# def search_preparaty(query):
+#     session = create_session()
+#
+#     api_url = "https://apteka911.ua/ua/shop/search"
+#
+#     payload = {
+#         'q': query,
+#     }
+#
+#     try:
+#         # ЗАПИТ ДО API ЗА КИРИЛИЧНОЮ НАЗВОЮ
+#         response = session.post(api_url, headers=session.headers, data=payload, timeout=10)
+#         response.raise_for_status()
+#         json_data = response.json()
+#         alias_category = json_data.get("data", {}).get("results", [])[0]['alias']
+#         url_category = f'https://apteka911.ua/ua{alias_category}'
+#         parse_category(session, url_category)
+#         # res = session.post(url_category, headers=session.headers, timeout=10)
+#         # res.raise_for_status()
+#         # json_data = res.json()
+#         return json_data
+#
+#     except Exception as e:
+#         print(f"Помилка: {e}")
+#         time.sleep(10)  # Довша пауза при помилці

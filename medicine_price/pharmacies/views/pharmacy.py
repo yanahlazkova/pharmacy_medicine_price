@@ -3,7 +3,7 @@ import json
 from django.views.generic import TemplateView, ListView
 
 from core.parsers.apteka911.helper_apteka911 import get_categories_apteka911, update_categories_db, \
-    update_drugs_apteka911, save_to_file
+    update_all_drugs_apteka911, save_to_file
 from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
@@ -72,12 +72,20 @@ class UpdateCategoryViewApteka911(HTMXTemplateMixin, ListView):
         return ctx
 
 
-class UpdateDrugsViewApteka911(HTMXTemplateMixin, ListView):
+class UpdateAllDrugsViewApteka911(HTMXTemplateMixin, ListView):
     model = DrugApteka911
 
     def update_drugs(self):
+        # drugs = DrugApteka911.objects.all()
+        # for drug in drugs:
+        #     drug.productNameNormalized = drug.productName.casefold()
+        #
+        # DrugApteka911.objects.bulk_update(
+        #     drugs,
+        #     ['productNameNormalized']
+        # )
         url_categories = CategoryApteka911.objects.values_list('pk', 'url')
-        update_drugs_apteka911(url_categories)
+        update_all_drugs_apteka911(url_categories)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

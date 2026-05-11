@@ -2,8 +2,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.generic import TemplateView, ListView
 
-from core.parsers.apteka911.helper_apteka911 import create_session, fetch_page, parse_category, update_drugs_apteka911, \
-    search_preparaty
+from core.parsers.apteka911.helper_apteka911 import update_all_drugs_apteka911, update_drugs_apteka911
 from core.parsers.helper_parser import get_categories_apteka911, save_to_file_categories
 from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import DrugApteka911, CategoryApteka911
@@ -38,9 +37,12 @@ class HomePageView(HTMXTemplateMixin, TemplateView):
 
 class SearchView(HTMXTemplateMixin, ListView):
     model = DrugApteka911
+    page_content: tuple[str] = ('home.html',)
     context_object_name = 'search_preparaty'
     # Вказуємо шаблон для результатів
-    template_name = "base_page.html"
+    # template_name = "base_page.html"
+
+    query = None
 
     def post(self, request, *args, **kwargs):
         # HTMX робить POST запит. Викликаємо метод get,
@@ -49,32 +51,21 @@ class SearchView(HTMXTemplateMixin, ListView):
 
     def get_queryset(self):
         # Отримуємо запит з POST (або з GET для сумісності)
-        query = self.request.POST.get('q') or self.request.GET.get('q')
-        if query:
-            # Використовуємо icontains для пошуку за частиною слова без урахування регістру
-            res = self.model.objects.filter(productName__icontains=query)
-            json_data = self.search_preparats(query)
-            for r in res:
-                print(f'{r.productName}: {r.category}')
-                # self.update_category(r.category)
-            return self.model.objects.filter(productName__icontains=query)
+        self.query = self.request.POST.get('q') or self.request.GET.get('q')
+        if self.query:
+            # update_drugs_apteka911(self.query)
+
+            drugs = DrugApteka911.objects.filter(productNameNormalized__icontains=self.query)
+
+            for drug in drugs:
+                print(f'{drug.productName}({drug.category}): {drug.productPrice}')
+
+            return drugs
 
         return self.model.objects.none()
 
-    def search_preparats(self, query):
-        # query = self.request.POST.get('q') or self.request.GET.get('q')
-        if query:
-            res = search_preparaty(query)
-
-
-    def update_category(self, url_category):
-        res = CategoryApteka911.objects.filter(name__icontains='Жарознижуючі').values_list('pk', 'url')
-        # list_category = [cat.url_category for cat in res]
-        # update_drugs_apteka911(list_category)
-        # update_drugs_apteka911(res)
-        print(f'name: {res.name}, url_category: {res.url}')
-
-
+    def get_page_content(self):
+        return list(self.page_content)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -83,5 +74,10 @@ class SearchView(HTMXTemplateMixin, ListView):
             'page_title': 'Результати пошуку',
             'query': self.request.POST.get('q', ''),
             'pharmacy': LIST_PHARMACY,
+            'page_content': self.get_page_content(),
+            'table': {
+                'name': f'Пошук за {self.query}',
+                'table_content': self.queryset,
+            }
         })
         return ctx
