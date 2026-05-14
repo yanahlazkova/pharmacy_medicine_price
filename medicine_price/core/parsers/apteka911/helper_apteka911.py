@@ -298,24 +298,8 @@ def update_all_drugs_apteka911(categories):
 
 """ Search """
 
-"""
-{result: "success", data: {query: "парацетамол",…}}
-data: {query: "парацетамол",…}
-qnt_fuzzy
-: false
-qnt_hints: 1
-qnt_indexes: 13
-qnt_products: false
-query: "парацетамол"
-results: [{hint: 1, logID: 7396249, type: 1, alias: "/drugs/paratsetamol-d2238", indexID: "220225",…}, {,…},…]
-0: {hint: 1, logID: 7396249, type: 1, alias: "/drugs/paratsetamol-d2238", indexID: "220225",…}
-1: {,…}
-2: {analizeStr: "Парацетамол Беби", analizeStr2: "Парацетамол Бебі", indexID: 364612,…}
 
-"""
-
-
-def update_drugs_apteka911(product_name):
+def update_drugs_apteka911(producty):
     drugs = DrugApteka911.objects.filter(productNameNormalized__icontains=product_name)
     for drug in drugs:
         print(f'{drug.productName}({drug.category}): {drug.productPrice}')
@@ -347,97 +331,125 @@ def search_preparaty(query):
     """ пошук за назвою препарата """
     session = create_session()
 
-    api_url = "https://apteka911.ua/ua/shop/search"
+    list_preparaty = []
 
-    payload = {
-        'q': query,
-        'checkUrl': True,
-    }
+    page = 1
+
+    url = f"https://apteka911.ua/ua/shop/search?query={quote(query)}"
 
     try:
-        # ЗАПИТ ДО API ЗА КИРИЛИЧНОЮ НАЗВОЮ
-        response = session.post(api_url, headers=session.headers, data=payload, timeout=10)
+        response = session.get(url, timeout=5)
         response.raise_for_status()
-        json_data = response.json()
-        json_url = json_data['data']['url']
-        if json_url:
-            url = f'https://apteka911.ua/ua{json_url}'
-        else:
-            url = f"https://apteka911.ua/ua/shop/search?query={quote(query)}"
+        html = response.text
+        # отримаємо кількість сторінок
+        total_pages = get_count_pages(html)
+
+        data = get_data_html_page(html)
+        list_preparaty.extend(drug for drug in data)
+        while page < total_pages:
+            page += 1
+            url = f"https://apteka911.ua/ua/shop/search/page={page}?query={quote(query)}"
+
             response = session.get(url, headers=session.headers, timeout=10)
             response.raise_for_status()
             html = response.text
-            soup = BeautifulSoup(html, 'html.parser')
+
+            data = get_data_html_page(html)
+            list_preparaty.extend(drug for drug in data)
+
+        return  list_preparaty if list_preparaty else None
+
+    except Exception as e:
+        print(f"Помилка: {e}")
+        time.sleep(10)  # Довша пауза при помилці
+    return None
 
 
+def get_count_pages(html):
+    soup = BeautifulSoup(html, "html.parser")
 
-        products = get_data_html_page(session, url)
-        LIST_PREPARATY.extend(
-            product for product in products
-            if is_valid_product(product, query)
-        )
-        print(f'{len(LIST_PREPARATY)} PRODUCTS FOUND')
+    pages = soup.select(".pagination a")
+    if not pages:
+        # якщо кількість сторінок не знайдено, то сторінка одна
+        return 1
+    page_numbers = []
 
-        return LIST_PREPARATY
+    for page in pages:
 
-        # is_products = json_data.get("data", {}).get("qnt_products", False)
-        #
-        # results = json_data.get("data", {}).get("results", [])
-        #
-        # if not is_products:
-        #     # перебрати категорії
-        #     for item in results:
-        #         alias = item.get("alias")
-        #
-        #         if alias:
-        #             print(alias)
-        #
-        #             # 2. отримання товарів по alias
-        #             # payload_alias = {
-        #             #     "pushHistory": "true",
-        #             #     "alias": alias,
-        #             # }
-        #             #
-        #             # response2 = session.post(
-        #             #     "https://apteka911.ua/ua/shop/search",
-        #             #     headers=session.headers,
-        #             #     data=payload_alias,
-        #             # )
-        #             url = "https://apteka911.ua" + alias
-        #             response2 = session.get(url, headers=session.headers)
-        #             response2.raise_for_status()
-        #             response_html = response2.text
-        #             get_data_html_page(response_html, response2)
+        text = page.get_text(strip=True)
 
-            # for item in results:
-            #     parse_category_for_search(session, item['alias'], query)
-        # else:
-        #     # повернути знайдені препарати
-        #     return LIST_PREPARATY
-    #
+        if text.isdigit():
+            page_numbers.append(int(text))
+
+    max_page = max(page_numbers)
+
+    return max_page
+
+    # def search_preparaty(query):
+#     """ пошук за назвою препарата """
+#     session = create_session()
+#
+#     api_url = "https://apteka911.ua/ua/shop/search"
+#
+#     payload = {
+#         'q': query,
+#         'checkUrl': True,
+#     }
+#
+#     try:
+#         # ЗАПИТ ДО API ЗА КИРИЛИЧНОЮ НАЗВОЮ
+#         response = session.post(api_url, headers=session.headers, data=payload, timeout=10)
+#         response.raise_for_status()
+#         json_data = response.json()
+#         json_url = json_data['data']['url']
+#         if json_url:
+#             url = f'https://apteka911.ua/ua{json_url}'
+#         else:
+#             url = f"https://apteka911.ua/ua/shop/search?query={quote(query)}"
+#             response = session.get(url, headers=session.headers, timeout=10)
+#             response.raise_for_status()
+#             html = response.text
+#             soup = BeautifulSoup(html, 'html.parser')
+#
+#
+#
+#         products = get_data_html_page(session, url)
+#         LIST_PREPARATY.extend(
+#             product for product in products
+#             if is_valid_product(product, query)
+#         )
+#         print(f'{len(LIST_PREPARATY)} PRODUCTS FOUND')
+#
+#         return LIST_PREPARATY
+#
+#            #
+#     except Exception as e:
+#         print(f"Помилка: {e}")
+#         time.sleep(10)  # Довша пауза при помилці
+
+
+def get_data_html_page(html):
+    try:
+
+        if '"products"' in html:
+            match = re.search(
+                r'"products":(\[\{.*?\}\])',
+                html,
+                re.DOTALL
+            )
+
+            if not match:
+                print("PRODUCTS NOT FOUND")
+                return None
+            products_json = match.group(1)
+            products = json.loads(products_json)
+
+            return products
     except Exception as e:
         print(f"Помилка: {e}")
         time.sleep(10)  # Довша пауза при помилці
 
-
-def get_data_html_page(session, url):
-    response = session.get(url)
-    html = response.text
-    print('"products":' in html)
-    match = re.search(
-        r'"products":(\[\{.*?\}\])',
-        html,
-        re.DOTALL
-    )
-
-    if not match:
-        print("PRODUCTS NOT FOUND")
-        return
-
-    products_json = match.group(1)
-    products = json.loads(products_json)
-
-    return products
+    return None
 
 
 
