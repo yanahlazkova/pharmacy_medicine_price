@@ -2,7 +2,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.generic import TemplateView, ListView
 
-from core.parsers.apteka911.helper_apteka911 import update_all_drugs_apteka911, update_drugs_apteka911
+from core.parsers.apteka911.helper_apteka911 import update_all_drugs_apteka911, update_drugs_apteka911, search_preparaty
 from core.parsers.helper_parser import get_categories_apteka911, save_to_file_categories
 from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import DrugApteka911, CategoryApteka911
@@ -55,11 +55,11 @@ class SearchView(HTMXTemplateMixin, ListView):
         if self.query:
             # update_drugs_apteka911(self.query)
 
-            drugs = DrugApteka911.objects.filter(productNameNormalized__icontains=self.query)
+            # drugs = DrugApteka911.objects.filter(productNameNormalized__icontains=self.query)
 
-            for drug in drugs:
-                print(f'{drug.productName}({drug.category}): {drug.productPrice}')
-
+            drugs = search_preparaty(self.query)
+            # for drug in drugs:
+            #     print(f'{drug['productName']}: {drug['productPrice']} ({drug['productAvail']})')
             return drugs
 
         return self.model.objects.none()
@@ -77,7 +77,7 @@ class SearchView(HTMXTemplateMixin, ListView):
             'page_content': self.get_page_content(),
             'table': {
                 'name': f'Пошук за {self.query}',
-                'table_content': self.queryset,
+                # 'table_content': self.queryset,
             }
         })
         return ctx

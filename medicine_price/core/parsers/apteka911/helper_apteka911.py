@@ -1,4 +1,5 @@
 """ методи парсингу """
+import re
 import time
 import json
 import requests
@@ -7,8 +8,9 @@ import random
 from bs4 import BeautifulSoup
 from django.db.models.functions import Lower
 from fake_useragent import UserAgent
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote
 
+from core.parsers.helper_parser import LIST_PREPARATY
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
 SEEN_URLS = set()  # для збору url категорій
@@ -75,12 +77,13 @@ def get_categories_apteka911():
                             "name": name,
                             "url": url
                         })
-
+                session.close()
                 return categories
 
 
     except requests.exceptions.HTTPError as e:
         print(f"HTTP error: {e}")
+        session.close()
         return None
 
 
@@ -105,23 +108,23 @@ def update_categories_db(categories):
 
 def create_session():
     ua = UserAgent()
-    session = requests.Session()
+    with requests.Session() as session:
 
-    session.headers.update({
-        "User-Agent": ua.random,
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "X-Requested-With": "XMLHttpRequest",
-    })
+        session.headers.update({
+            "User-Agent": ua.random,
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "X-Requested-With": "XMLHttpRequest",
+        })
 
-    # ініціалізація cookies
-    session.get("https://apteka911.ua/ua")
+        # ініціалізація cookies
+        session.get("https://apteka911.ua/ua")
 
-    session.cookies.update({
-        "site_version": "desktop",
-        "wucmf_region": "89",
-    })
+        session.cookies.update({
+            "site_version": "desktop",
+            "wucmf_region": "89",
+        })
 
-    return session
+        return session
 
 
 def fetch_page(session, url):
@@ -289,10 +292,28 @@ def update_all_drugs_apteka911(categories):
             BATCH_TO_UPDATE.clear()
             BATCH_TO_CREATE.clear()
 
+    session.close()
     save_to_db()
 
 
 """ Search """
+
+"""
+{result: "success", data: {query: "парацетамол",…}}
+data: {query: "парацетамол",…}
+qnt_fuzzy
+: false
+qnt_hints: 1
+qnt_indexes: 13
+qnt_products: false
+query: "парацетамол"
+results: [{hint: 1, logID: 7396249, type: 1, alias: "/drugs/paratsetamol-d2238", indexID: "220225",…}, {,…},…]
+0: {hint: 1, logID: 7396249, type: 1, alias: "/drugs/paratsetamol-d2238", indexID: "220225",…}
+1: {,…}
+2: {analizeStr: "Парацетамол Беби", analizeStr2: "Парацетамол Бебі", indexID: 364612,…}
+
+"""
+
 
 def update_drugs_apteka911(product_name):
     drugs = DrugApteka911.objects.filter(productNameNormalized__icontains=product_name)
@@ -317,45 +338,164 @@ def update_drugs_apteka911(product_name):
             save_to_db()
             BATCH_TO_UPDATE.clear()
             BATCH_TO_CREATE.clear()
+
+    session.close()
     save_to_db()
 
 
-# def search_drugs(search_term):
-#     search_term = search_term.strip().lower()
-#
-#     return (
-#         DrugApteka911.objects
-#         .annotate(
-#             product_name_lower=Lower('productName')
-#         )
-#         .filter(
-#             product_name_lower__contains=search_term
-#         )
-#     )
+def search_preparaty(query):
+    """ пошук за назвою препарата """
+    session = create_session()
+
+    api_url = "https://apteka911.ua/ua/shop/search"
+
+    payload = {
+        'q': query,
+        'checkUrl': True,
+    }
+
+    try:
+        # ЗАПИТ ДО API ЗА КИРИЛИЧНОЮ НАЗВОЮ
+        response = session.post(api_url, headers=session.headers, data=payload, timeout=10)
+        response.raise_for_status()
+        json_data = response.json()
+        json_url = json_data['data']['url']
+        if json_url:
+            url = f'https://apteka911.ua/ua{json_url}'
+        else:
+            url = f"https://apteka911.ua/ua/shop/search?query={quote(query)}"
+            response = session.get(url, headers=session.headers, timeout=10)
+            response.raise_for_status()
+            html = response.text
+            soup = BeautifulSoup(html, 'html.parser')
 
 
-# def search_preparaty(query):
-#     session = create_session()
+
+        products = get_data_html_page(session, url)
+        LIST_PREPARATY.extend(
+            product for product in products
+            if is_valid_product(product, query)
+        )
+        print(f'{len(LIST_PREPARATY)} PRODUCTS FOUND')
+
+        return LIST_PREPARATY
+
+        # is_products = json_data.get("data", {}).get("qnt_products", False)
+        #
+        # results = json_data.get("data", {}).get("results", [])
+        #
+        # if not is_products:
+        #     # перебрати категорії
+        #     for item in results:
+        #         alias = item.get("alias")
+        #
+        #         if alias:
+        #             print(alias)
+        #
+        #             # 2. отримання товарів по alias
+        #             # payload_alias = {
+        #             #     "pushHistory": "true",
+        #             #     "alias": alias,
+        #             # }
+        #             #
+        #             # response2 = session.post(
+        #             #     "https://apteka911.ua/ua/shop/search",
+        #             #     headers=session.headers,
+        #             #     data=payload_alias,
+        #             # )
+        #             url = "https://apteka911.ua" + alias
+        #             response2 = session.get(url, headers=session.headers)
+        #             response2.raise_for_status()
+        #             response_html = response2.text
+        #             get_data_html_page(response_html, response2)
+
+            # for item in results:
+            #     parse_category_for_search(session, item['alias'], query)
+        # else:
+        #     # повернути знайдені препарати
+        #     return LIST_PREPARATY
+    #
+    except Exception as e:
+        print(f"Помилка: {e}")
+        time.sleep(10)  # Довша пауза при помилці
+
+
+def get_data_html_page(session, url):
+    response = session.get(url)
+    html = response.text
+    print('"products":' in html)
+    match = re.search(
+        r'"products":(\[\{.*?\}\])',
+        html,
+        re.DOTALL
+    )
+
+    if not match:
+        print("PRODUCTS NOT FOUND")
+        return
+
+    products_json = match.group(1)
+    products = json.loads(products_json)
+
+    return products
+
+
+
+# def parse_category_for_search(session, category_url, query):
+#     requests_count = 0  # для перерви/відпочинку
+#     page = 1
+#     while True:
+#         url = f"https://apteka911.ua/ua{category_url}/page={page}"
+#         headers = {
+#             "Referer": url
+#         }
 #
-#     api_url = "https://apteka911.ua/ua/shop/search"
-#
-#     payload = {
-#         'q': query,
-#     }
-#
-#     try:
-#         # ЗАПИТ ДО API ЗА КИРИЛИЧНОЮ НАЗВОЮ
-#         response = session.post(api_url, headers=session.headers, data=payload, timeout=10)
+#         # data_json = fetch_page(session, paged_url)
+#         # response = session.post(paged_url, headers=session.headers, data=payload, timeout=10)
+#         response = session.post(url, headers=session.headers, timeout=10)
 #         response.raise_for_status()
-#         json_data = response.json()
-#         alias_category = json_data.get("data", {}).get("results", [])[0]['alias']
-#         url_category = f'https://apteka911.ua/ua{alias_category}'
-#         parse_category(session, url_category)
-#         # res = session.post(url_category, headers=session.headers, timeout=10)
-#         # res.raise_for_status()
-#         # json_data = res.json()
-#         return json_data
+#         data_json = response.json()
 #
-#     except Exception as e:
-#         print(f"Помилка: {e}")
-#         time.sleep(10)  # Довша пауза при помилці
+#         if not data_json:
+#             break
+#
+#         ajax_products = data_json.get("data", {}).get("ajax_products", [])
+#
+#         # перевірка за дублікатами, пошуковим словом, наявністю
+#         LIST_PREPARATY.extend(
+#             product for product in ajax_products
+#             if is_valid_product(product, query)
+#         )
+#
+#         last_page = data_json.get('data', {}).get('pages', {}).get('npages', 1)
+#
+#         print(f"Page {page}: {len(ajax_products)} products: {category_url}")
+#
+#         if page >= last_page:
+#             break
+#
+#         requests_count += 1
+#         page += 1
+#
+#         # anti-rate limit
+#         time.sleep(random.uniform(1, 3))
+#
+#         if requests_count % 50 == 0:
+#             # save_to_file(LIST_PREPARATY, 'apteka911.json')
+#
+#             time.sleep(random.uniform(20, 40))
+
+
+def is_valid_product(product, query):
+    if product['productAvail'] != 'yes':
+        return False
+
+    if product['productID'] in SEEN_PRODUCT_ID:
+        return False
+
+    if query.casefold() not in product['productName'].casefold():
+        return False
+
+    SEEN_PRODUCT_ID.add(product['productID'])
+
+    return True
