@@ -338,7 +338,7 @@ def search_preparaty(query):
     url = f"https://apteka911.ua/ua/shop/search?query={quote(query)}"
 
     try:
-        response = session.get(url, timeout=5)
+        response = session.get(url, headers=session.headers, timeout=5)
         response.raise_for_status()
         html = response.text
         # отримаємо кількість сторінок

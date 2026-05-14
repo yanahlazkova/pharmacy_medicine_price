@@ -88,9 +88,9 @@ class HomePageView(HTMXTemplateMixin, TemplateView):
 
 class SearchView(HTMXTemplateMixin, ListView):
     template_name = "base_page.html"
-    # htmx_template_name = "htmx_page.html"
+    htmx_template_name = "htmx_page.html"
 
-    # page_content = ('home.html',)
+    page_content = ('home.html',)
 
     context_object_name = 'search_preparaty'
 
@@ -127,7 +127,7 @@ class SearchView(HTMXTemplateMixin, ListView):
             'page_title': 'Результати пошуку',
             'query': self.query,
             'pharmacy': LIST_PHARMACY,
-            # 'page_content': self.get_page_content(),
+            'page_content': self.get_page_content(),
 
             'table': {
                 'name': f'Пошук за "{self.query}"',
