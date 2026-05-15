@@ -2,10 +2,13 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.generic import TemplateView, ListView
 
-from core.parsers.apteka911.helper_apteka911 import update_all_drugs_apteka911, update_drugs_apteka911, search_preparaty
-from core.parsers.helper_parser import get_categories_apteka911, save_to_file_categories
+# from core.parsers.apteka911.helper_apteka911 import search_preparaty
+from core.parsers.apteka911 import helper_apteka911 as apteka911
+
+from core.parsers.apteka_dobrogo_dnya import helper_add as apteka_dobrogo_dnia
+
 from pharmacies.mixins.htmx import HTMXTemplateMixin
-from pharmacies.models import DrugApteka911, CategoryApteka911
+from pharmacies.models import DrugApteka911
 
 LIST_PHARMACY = {
     'apteka911': 'Аптека 911',
@@ -87,10 +90,10 @@ class HomePageView(HTMXTemplateMixin, TemplateView):
 #         return ctx
 
 class SearchView(HTMXTemplateMixin, ListView):
-    template_name = "base_page.html"
-    htmx_template_name = "htmx_page.html"
+    # template_name = "base_page.html"
+    # htmx_template_name = "htmx_page.html"
 
-    page_content = ('home.html',)
+    page_content = ('block_table.html',)
 
     context_object_name = 'search_preparaty'
 
@@ -108,9 +111,12 @@ class SearchView(HTMXTemplateMixin, ListView):
 
         if self.query:
 
-            drugs = search_preparaty(self.query)
+            apteka911.search_preparaty(self.query)
+            drugs = DrugApteka911.objects.filter(productNameNormalized__icontains=self.query.casefold(), productAvail=True)
+            # drugs = apteka_dobrogo_dnia.search_preparaty(self.query)
 
             if drugs:
+
                 print(f'Знайдено {len(drugs)} препаратів')
 
             return drugs

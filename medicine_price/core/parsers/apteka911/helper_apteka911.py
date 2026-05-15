@@ -109,6 +109,8 @@ def update_categories_db(categories):
 def create_session():
     ua = UserAgent()
     with requests.Session() as session:
+        print('Start session')
+        # session = requests.Session()
 
         session.headers.update({
             "User-Agent": ua.random,
@@ -125,6 +127,7 @@ def create_session():
         })
 
         return session
+    print('End session')
 
 
 def fetch_page(session, url):
@@ -160,7 +163,7 @@ def build_image_url(drug):
             return None
 
 
-def create_obj_model_drug_apteka911(product, category_url):
+def create_obj_model_drug_apteka911(product, category_url=None):
     included_fields = [f.name for f in DrugApteka911._meta.fields if
                        f.name != 'productAvail' and
                        f.name != 'productNameNormalized' and
@@ -171,7 +174,8 @@ def create_obj_model_drug_apteka911(product, category_url):
     for field in included_fields:
         drug_data[field] = product.get(field, None)
 
-    drug_data['category'] = category_url
+    if category_url:
+        drug_data['category'] = category_url
     drug_data['productNameNormalized'] = drug_data['productName'].casefold()
     drug_data['productAvail'] = True if product.get('productAvail') == 'yes' else False
     # отримання даних картинки
@@ -331,6 +335,7 @@ def search_preparaty(query):
     """ пошук за назвою препарата """
     session = create_session()
 
+    list_search_preparaty = []
     list_preparaty = []
 
     page = 1
@@ -345,7 +350,9 @@ def search_preparaty(query):
         total_pages = get_count_pages(html)
 
         data = get_data_html_page(html)
-        list_preparaty.extend(drug for drug in data)
+        if not data:
+            return None
+        # list_preparaty.extend(drug for drug in data)
         while page < total_pages:
             page += 1
             url = f"https://apteka911.ua/ua/shop/search/page={page}?query={quote(query)}"
@@ -355,9 +362,17 @@ def search_preparaty(query):
             html = response.text
 
             data = get_data_html_page(html)
-            list_preparaty.extend(drug for drug in data)
+            list_search_preparaty.extend(drug for drug in data)
 
-        return  list_preparaty if list_preparaty else None
+        session.close()
+        print('Fall session')
+
+        for drug in list_search_preparaty:
+            list_preparaty.append(create_obj_model_drug_apteka911(drug))
+
+        save_drugs_to_db(list_preparaty, query)
+
+        # return  list_preparaty if list_preparaty else None
 
     except Exception as e:
         print(f"Помилка: {e}")
@@ -385,48 +400,6 @@ def get_count_pages(html):
 
     return max_page
 
-    # def search_preparaty(query):
-#     """ пошук за назвою препарата """
-#     session = create_session()
-#
-#     api_url = "https://apteka911.ua/ua/shop/search"
-#
-#     payload = {
-#         'q': query,
-#         'checkUrl': True,
-#     }
-#
-#     try:
-#         # ЗАПИТ ДО API ЗА КИРИЛИЧНОЮ НАЗВОЮ
-#         response = session.post(api_url, headers=session.headers, data=payload, timeout=10)
-#         response.raise_for_status()
-#         json_data = response.json()
-#         json_url = json_data['data']['url']
-#         if json_url:
-#             url = f'https://apteka911.ua/ua{json_url}'
-#         else:
-#             url = f"https://apteka911.ua/ua/shop/search?query={quote(query)}"
-#             response = session.get(url, headers=session.headers, timeout=10)
-#             response.raise_for_status()
-#             html = response.text
-#             soup = BeautifulSoup(html, 'html.parser')
-#
-#
-#
-#         products = get_data_html_page(session, url)
-#         LIST_PREPARATY.extend(
-#             product for product in products
-#             if is_valid_product(product, query)
-#         )
-#         print(f'{len(LIST_PREPARATY)} PRODUCTS FOUND')
-#
-#         return LIST_PREPARATY
-#
-#            #
-#     except Exception as e:
-#         print(f"Помилка: {e}")
-#         time.sleep(10)  # Довша пауза при помилці
-
 
 def get_data_html_page(html):
     try:
@@ -452,52 +425,6 @@ def get_data_html_page(html):
     return None
 
 
-
-# def parse_category_for_search(session, category_url, query):
-#     requests_count = 0  # для перерви/відпочинку
-#     page = 1
-#     while True:
-#         url = f"https://apteka911.ua/ua{category_url}/page={page}"
-#         headers = {
-#             "Referer": url
-#         }
-#
-#         # data_json = fetch_page(session, paged_url)
-#         # response = session.post(paged_url, headers=session.headers, data=payload, timeout=10)
-#         response = session.post(url, headers=session.headers, timeout=10)
-#         response.raise_for_status()
-#         data_json = response.json()
-#
-#         if not data_json:
-#             break
-#
-#         ajax_products = data_json.get("data", {}).get("ajax_products", [])
-#
-#         # перевірка за дублікатами, пошуковим словом, наявністю
-#         LIST_PREPARATY.extend(
-#             product for product in ajax_products
-#             if is_valid_product(product, query)
-#         )
-#
-#         last_page = data_json.get('data', {}).get('pages', {}).get('npages', 1)
-#
-#         print(f"Page {page}: {len(ajax_products)} products: {category_url}")
-#
-#         if page >= last_page:
-#             break
-#
-#         requests_count += 1
-#         page += 1
-#
-#         # anti-rate limit
-#         time.sleep(random.uniform(1, 3))
-#
-#         if requests_count % 50 == 0:
-#             # save_to_file(LIST_PREPARATY, 'apteka911.json')
-#
-#             time.sleep(random.uniform(20, 40))
-
-
 def is_valid_product(product, query):
     if product['productAvail'] != 'yes':
         return False
@@ -511,3 +438,50 @@ def is_valid_product(product, query):
     SEEN_PRODUCT_ID.add(product['productID'])
 
     return True
+
+
+def save_drugs_to_db(products, query):
+    list_update = []
+    list_create = []
+
+    existing_products = {
+        drug.productID: drug.id
+        for drug in
+        DrugApteka911.objects.filter(productNameNormalized__icontains=query.casefold()) #.only('id', 'productID')
+    }
+
+    if existing_products:
+
+        for product in products:
+            product_id = product.productID
+
+            if product_id in existing_products:
+                product.id = existing_products[product_id]
+                list_update.append(product)
+            else:
+                list_create.append(product)
+
+    else:
+        list_create.extend(products)
+
+    if list_update:
+        try:
+            DrugApteka911.objects.bulk_update(list_update,
+                                              [
+                                                  'productName',
+                                                  'productNameNormalized',
+                                                  'alias',
+                                                  'productAvail',
+                                                  'productMname',
+                                                  'productPrice',
+                                              ], batch_size=100)
+            print(f'update {len(list_update)} products')
+        except Exception as e:
+            print(f"[DB ERROR] (update): {e}")
+    if list_create:
+        try:
+            DrugApteka911.objects.bulk_create(list_create, batch_size=100)
+            print(f'create {len(list_create)} products')
+
+        except Exception as e:
+            print(f"[DB ERROR] (insert): {e}")

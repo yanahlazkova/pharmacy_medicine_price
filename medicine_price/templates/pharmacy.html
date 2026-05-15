@@ -31,14 +31,14 @@
             <div class="col-sm-6 mb-3 mb-sm-0">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Категорії</h5>
+                        <h5 class="card-title">Ліки</h5>
                         <p class="card-text">Дата останнього оновлення:</p>
                         <p class="mb-2 text-body-secondary">
-                            {{ date_update_category }}
+                            {{ date_update_drugs }}
                         </p>
                         <a href="{% url 'pharmacies:update_cat_apteka911' %}"
                            class="btn btn-outline-info"
-                           hx-get="{% url 'pharmacies:update_cat_apteka911' %}"
+                           hx-get="{% url 'pharmacies:update_drugs_apteka911' %}"
                            hx-target="#main-content"
                            hx-swap="innerHTML">
                             Оновити
@@ -49,15 +49,15 @@
             <div class="col-sm-6">
                 <div class="card mb-3">
                     <div class="card-body">
-                        <h5 class="card-title">Ліки</h5>
+                        <h5 class="card-title">Категорії</h5>
                         <p class="card-text">Дата останнього оновлення:</p>
                         <p class="mb-2 text-body-secondary">
-                            {{ date_update_drugs }}
+                            {{ date_update_category }}
 
                         </p>
                         <a href="{% url 'pharmacies:update_drugs_apteka911' %}"
                            class="btn btn-outline-info"
-                           hx-get="{% url 'pharmacies:update_drugs_apteka911' %}"
+                           hx-get="{% url 'pharmacies:update_cat_apteka911' %}"
                            hx-target="#main-content"
                            hx-swap="innerHTML">
                             Оновити
@@ -74,7 +74,7 @@
                        hx-get="{% url 'pharmacies:apteka911' %}"
                        hx-target="#tab-content"
                        hx-swap="innerHTML">
-                        Категорії
+                        Ліки
                     </a>
                 </li>
                 <li class="nav-item">
@@ -82,7 +82,7 @@
                        hx-get="{% url 'pharmacies:apteka911' %}"
                        hx-target="#tab-content"
                        hx-swap="innerHTML">
-                        Ліки
+                        Категорії
                     </a>
                 </li>
                 <li class="nav-item dropdown">
@@ -104,6 +104,70 @@
                 </li>
             </ul>
             <div id="tab-content">
+                <div class="row p-3">
+                    <div class="col-sm-6 mb-3 mb-sm-0">
+                        <div class="card">
+                            <div class="card-body">
+                                <form method="post"
+                                      hx-post="{{ form_action_url }}"
+                                      hx-target="#search-content"
+                                      hx-swap="innerHTML">
+
+                                    {% csrf_token %}
+
+                                    <div class="row mb-3">
+
+                                        <div class="col-auto">
+                                            <label for="inputSearch" class="visually-hidden">Пошук за
+                                                назвою ліків: </label>
+                                            <input type="text"
+                                                   name="search_query"
+                                                   class="form-control border-info"
+                                                   id="inputSearch"
+                                                   placeholder="Введіть назву..."
+                                                   value="{{ word_search|default:'' }}">
+                                        </div>
+
+                                        <div class="col-auto">
+                                            <button type="submit" class="btn btn-primary mb-3">Знайти</button>
+                                        </div>
+                                    </div>
+
+                                    {% for key, pharm in pharmacy.items %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="" id="{{ key }}" checked>
+                                        <label class="form-check-label text-info" for="{{ key }}">
+                                            {{ pharm }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% comment %}
+                    <div class="col-sm-6">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Категорії</h5>
+                                <p class="card-text">Дата останнього оновлення:</p>
+                                <p class="mb-2 text-body-secondary">
+                                    {{ date_update_category }}
+
+                                </p>
+                                <a href="{% url 'pharmacies:update_drugs_apteka911' %}"
+                                   class="btn btn-outline-info"
+                                   hx-get="{% url 'pharmacies:update_cat_apteka911' %}"
+                                   hx-target="#main-content"
+                                   hx-swap="innerHTML">
+                                    Оновити
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endcomment %}
+                </div>
                 {% include 'block_table.html' %}
             </div>
         </div>
