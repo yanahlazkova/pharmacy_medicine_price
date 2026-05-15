@@ -1,45 +1,102 @@
 {% load static %}
+
 <div class="container">
-    <h1 class="mt-3 text-info">{{ table.name }}</h1>
+
+    <h3 class="mt-3 text-info">
+        {{ table.name }}
+    </h3>
+
     <hr>
 
-    <div class="mb-3">
-        {% for button in table.toolbar_buttons %}
-        {% include "ui/htmx_button.html" with button=button %}
-        {% endfor %}
+    {% if table.table_content %}
+
+    <div class="table-responsive">
+
+        <table class="table table-sm table-striped table-bordered table-hover align-middle">
+
+            <thead class="table-info">
+
+            <tr>
+                <th scope="col">№</th>
+                <th scope="col">Назва</th>
+                <th scope="col">Ціна</th>
+                <th scope="col">Наявність</th>
+                <th scope="col">Посилання</th>
+            </tr>
+
+            </thead>
+
+            <tbody>
+
+            {% for row in table.table_content %}
+
+            <tr>
+
+                <td>
+                    {{ forloop.counter }}
+                </td>
+
+                <td>
+                    {{ row.productName|default:"-" }}
+                </td>
+
+                <td>
+                    {{ row.productPrice|default:"-" }}
+                </td>
+
+                <td>
+
+                    {% if row.productAvail %}
+
+                    <span class="badge bg-success">
+                        Є
+                    </span>
+
+                    {% else %}
+
+                    <span class="badge bg-danger">
+                        Немає
+                    </span>
+
+                    {% endif %}
+
+                </td>
+
+                <td>
+
+                    {% if row.alias %}
+
+                    <a href="https://apteka911.ua/ua/shop{{ row.alias }}"
+                       target="_blank"
+                       class="btn btn-sm btn-outline-info">
+
+                        Перейти
+                    </a>
+
+                    {% else %}
+
+                    -
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
     </div>
 
-    <table class="table table-sm table-success table-striped table-bordered table-success table align-bottom table-hover mt-3">
-        <thead>
-        <tr class="table-info">
-            <th scope="col">№</th>
-            {% for table_title in table.table_titles %}
-            <th scope="col">{{ table_title|capfirst }}</th>
-            {% endfor %}
-        </tr>
-        </thead>
-        <tbody class="table-group-divider">
-        {% for row in table.table_content %}
-        <tr role="button"
-            tabindex="0"
-            hx-get="{{ row.row_url }}"
-            hx-target="#main-content"
-            hx-push-url="true"
-            onkeypress="if(event.key === 'Enter') this.click();"
-            style="cursor: pointer;"
-        >
-            <td style="color: lightblue">{{ forloop.counter }}</td>
+    {% else %}
 
-            {% for key, value in row.values.items %}
-            {% if key != 'id' %}
-            <td>{{ value | default:'-' }}</td>
-            {% endif %}
-            {% endfor %}
+    <div class="alert alert-warning">
+        Нічого не знайдено
+    </div>
 
-        </tr>
-        {% endfor %}
+    {% endif %}
 
-        </tbody>
-    </table>
 </div>
-
