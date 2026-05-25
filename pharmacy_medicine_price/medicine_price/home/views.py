@@ -90,12 +90,12 @@ class HomePageView(HTMXTemplateMixin, TemplateView):
 #         return ctx
 
 class SearchView(HTMXTemplateMixin, ListView):
-    # template_name = "base_page.html"
-    # htmx_template_name = "htmx_page.html"
+    template_name = "base_page.html"
+    htmx_template_name = "htmx_page.html"
 
     page_content = ('block_table.html',)
 
-    context_object_name = 'search_preparaty'
+    # context_object_name = 'search_preparaty'
 
     query = None
 

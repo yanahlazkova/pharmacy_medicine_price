@@ -57,7 +57,7 @@ def search_preparaty(query):
         list_preparaty.extend(drug for drug in data)
         while page < total_pages:
             page += 1
-            url = f"https://www.add.ua/ua/catalogsearch/result/index/?p=2&q={quote(query)}"
+            url = f"https://www.add.ua/ua/catalogsearch/result/index/?p={page}&q={quote(query)}"
 
             response = session.get(url, headers=session.headers, timeout=10)
             response.raise_for_status()
