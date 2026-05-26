@@ -331,6 +331,20 @@ def update_drugs_apteka911(producty):
     save_to_db()
 
 
+def get_list_dict(list_search_preparaty):
+    return [
+        {
+            'productID': int(drug['productID']),
+            'productName': drug['productName'],
+            'productAvail': drug['productAvail'],
+            'productPrice': drug['productPrice'],
+            'alias': f'https://apteka911.ua/ua/shop{drug["alias"]}',
+            'pharmacy': 'Аптека 911',
+        }
+        for drug in list_search_preparaty
+    ]
+
+
 def search_preparaty(query):
     """ пошук за назвою препарата """
     session = create_session()
@@ -352,7 +366,9 @@ def search_preparaty(query):
         data = get_data_html_page(html)
         if not data:
             return None
-        # list_preparaty.extend(drug for drug in data)
+
+        list_search_preparaty.extend(drug for drug in data)
+
         while page < total_pages:
             page += 1
             url = f"https://apteka911.ua/ua/shop/search/page={page}?query={quote(query)}"
@@ -372,10 +388,12 @@ def search_preparaty(query):
 
         save_drugs_to_db(list_preparaty, query)
 
-        # return  list_preparaty if list_preparaty else None
+        res = get_list_dict(list_search_preparaty)
+
+        return res if res else None
 
     except Exception as e:
-        print(f"Помилка: {e}")
+        print(f"Помилка apteka911: {e}")
         time.sleep(10)  # Довша пауза при помилці
     return None
 
@@ -419,7 +437,7 @@ def get_data_html_page(html):
 
             return products
     except Exception as e:
-        print(f"Помилка: {e}")
+        print(f"Помилка get_data_html_page apteka911: {e}")
         time.sleep(10)  # Довша пауза при помилці
 
     return None
@@ -447,7 +465,7 @@ def save_drugs_to_db(products, query):
     existing_products = {
         drug.productID: drug.id
         for drug in
-        DrugApteka911.objects.filter(productNameNormalized__icontains=query.casefold()) #.only('id', 'productID')
+        DrugApteka911.objects.only('id', 'productID')
     }
 
     if existing_products:

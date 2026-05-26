@@ -329,5 +329,3 @@ def get_ajax_products(url: str, headers_base, session):
 #             })
 #
 #     return categories
-
-

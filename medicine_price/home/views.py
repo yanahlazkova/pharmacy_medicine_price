@@ -90,12 +90,12 @@ class HomePageView(HTMXTemplateMixin, TemplateView):
 #         return ctx
 
 class SearchView(HTMXTemplateMixin, ListView):
-    # template_name = "base_page.html"
-    # htmx_template_name = "htmx_page.html"
+    template_name = "base_page.html"
+    htmx_template_name = "htmx_page.html"
 
     page_content = ('block_table.html',)
 
-    context_object_name = 'search_preparaty'
+    # context_object_name = 'search_preparaty'
 
     query = None
 
@@ -103,23 +103,33 @@ class SearchView(HTMXTemplateMixin, ListView):
         return self.get(request, *args, **kwargs)
 
     def get_queryset(self):
+        list_search = []
 
         self.query = (
-            self.request.POST.get('q')
-            or self.request.GET.get('q')
+            self.request.GET.get('q')
+            or self.request.POST.get('q')
         )
-
+        print('GET:', self.request.GET)
+        print('POST:', self.request.POST)
+        print('QUERY:', self.query)
         if self.query:
 
-            apteka911.search_preparaty(self.query)
-            drugs = DrugApteka911.objects.filter(productNameNormalized__icontains=self.query.casefold(), productAvail=True)
-            # drugs = apteka_dobrogo_dnia.search_preparaty(self.query)
+            drugs_apteka911 = apteka911.search_preparaty(self.query)
+            # drugs_db = DrugApteka911.objects.filter(productNameNormalized__icontains=self.query.casefold(), productAvail=True)
+            drugs_add = apteka_dobrogo_dnia.search_preparaty(self.query)
 
-            if drugs:
+            if drugs_apteka911:
 
-                print(f'Знайдено {len(drugs)} препаратів')
+                print(f'Знайдено {len(drugs_apteka911)} препаратів {drugs_apteka911[0]['pharmacy']}')
 
-            return drugs
+
+            if drugs_add:
+                print(f'Знайдено {len(drugs_add)} препаратів')
+
+            list_search.extend(drugs_apteka911)
+            list_search.extend(drugs_add)
+            list_search.sort(key=lambda x: x['productName'])
+            return list_search
 
         return []
 
@@ -136,9 +146,64 @@ class SearchView(HTMXTemplateMixin, ListView):
             'page_content': self.get_page_content(),
 
             'table': {
-                'name': f'Пошук за "{self.query}"',
+                'name': f'Пошук ліків за "{self.query}"',
                 'table_content': ctx['object_list'],
             }
         })
 
         return ctx
+
+
+# class SearchByNameView(HTMXTemplateMixin, ListView):
+#     page_content = ('block_table.html',)
+#
+#     context_object_name = 'search_preparaty'
+#
+#     query = None
+#
+#     def get_queryset(self):
+#         list_search = []
+#
+#         self.query = (
+#                 self.request.POST.get('q')
+#                 or self.request.GET.get('q')
+#         )
+#
+#         if self.query:
+#
+#             drugs_apteka911 = apteka911.search_preparaty(self.query)
+#             # drugs_db = DrugApteka911.objects.filter(productNameNormalized__icontains=self.query.casefold(), productAvail=True)
+#             drugs_add = apteka_dobrogo_dnia.search_preparaty(self.query)
+#
+#             if drugs_apteka911:
+#                 print(f'Знайдено {len(drugs_apteka911)} препаратів')
+#
+#             if drugs_add:
+#                 print(f'Знайдено {len(drugs_add)} препаратів')
+#
+#             list_search.extend(drugs_apteka911)
+#             list_search.extend(drugs_add)
+#             list_search.sort(key=lambda x: x['productName'])
+#             return list_search
+#
+#         return []
+#
+#     def get_page_content(self):
+#         return list(self.page_content)
+#
+#     def get_context_data(self, **kwargs):
+#         ctx = super().get_context_data(**kwargs)
+#
+#         ctx.update({
+#             'page_title': 'Результати пошуку',
+#             'query': self.query,
+#             'pharmacy': LIST_PHARMACY,
+#             'page_content': self.get_page_content(),
+#
+#             'table': {
+#                 'name': f'Пошук за "{self.query}"',
+#                 'table_content': ctx['object_list'],
+#             }
+#         })
+#
+#         return ctx

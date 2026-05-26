@@ -19,12 +19,19 @@
                                name="search_query"
                                class="form-control border-info"
                                id="inputSearch"
-                               placeholder="Введіть категорію..."
-                               value="{{ word_search|default:'' }}">
+                               placeholder="Оберіть назву в таблиці..."
+                               value="{{ word_search|default:'' }}"
+                               disabled
+                        >
                     </div>
 
                     <div class="col-auto">
+                        {% if word_search %}
                         <button type="submit" class="btn btn-primary mb-3">Знайти</button>
+                        {% else %}
+                        <button type="submit" class="btn btn-light mb-3" disabled>Знайти</button>
+                        {% endif %}
+
                     </div>
                 </div>
 
