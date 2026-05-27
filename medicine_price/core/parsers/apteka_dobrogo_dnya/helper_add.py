@@ -2,11 +2,16 @@ import time
 import re
 import json
 
+from django.utils import timezone
+from datetime import timedelta
+
 from urllib.parse import quote
 
 import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
+
+from home.models import SearchResult
 
 
 def create_session():
@@ -34,7 +39,7 @@ def create_session():
 print('End session')
 
 
-def search_preparaty(query):
+def search_preparaty(query, session_key):
     """ пошук за назвою препарата """
     session = create_session()
 
@@ -68,14 +73,53 @@ def search_preparaty(query):
         session.close()
         print('Fall session')
 
-        res = get_list_dict(list_preparaty)
+        # res = get_list_dict(list_preparaty)
+        # return res if res else None
 
-        return res if res else None
+        # зберегти в БД
+        is_save = save_search_results(query,list_preparaty, session_key)
+
+        return len(is_save)
+
 
     except Exception as e:
         print(f"Помилка Аптека доброго дня: {e}")
         time.sleep(10)  # Довша пауза при помилці
     return None
+
+
+def save_search_results(query, results, session_key):
+    """
+    Зберігає результати пошуку в БД
+    """
+
+    SearchResult.objects.filter(
+        created_at__lt=timezone.now() - timedelta(hours=2)
+    ).delete()
+
+    objects = []
+
+    for drug in results:
+
+        objects.append(
+            SearchResult(
+                query=query,
+                name=drug['name'],
+                nameNormalized=drug['name'].casefold(),
+                session_key=session_key,
+                product_id=drug['id'],
+                pharmacy='Аптека доброго дня',
+                price=drug['price'],
+                alias=f'https://www.add.ua/ua/catalogsearch/result/?q={drug["name"]}',
+                brand=drug.get('brand', ''),
+                # image_url=drug.get('image', ''),
+                stock_status=(
+                    SearchResult.StockStatus.UNKNOWN
+                ),
+            )
+        )
+
+    return SearchResult.objects.bulk_create(objects)
 
 
 def get_list_dict(list_search_preparaty):

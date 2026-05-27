@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.generic import TemplateView, ListView
@@ -6,6 +7,7 @@ from django.views.generic import TemplateView, ListView
 from core.parsers.apteka911 import helper_apteka911 as apteka911
 
 from core.parsers.apteka_dobrogo_dnya import helper_add as apteka_dobrogo_dnia
+from home.models import SearchResult
 
 from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import DrugApteka911
@@ -90,8 +92,8 @@ class HomePageView(HTMXTemplateMixin, TemplateView):
 #         return ctx
 
 class SearchView(HTMXTemplateMixin, ListView):
-    template_name = "base_page.html"
-    htmx_template_name = "htmx_page.html"
+    # template_name = "base_page.html"
+    # htmx_template_name = "htmx_page.html"
 
     page_content = ('block_table.html',)
 
@@ -103,33 +105,52 @@ class SearchView(HTMXTemplateMixin, ListView):
         return self.get(request, *args, **kwargs)
 
     def get_queryset(self):
-        list_search = []
 
         self.query = (
             self.request.GET.get('q')
             or self.request.POST.get('q')
         )
+
+        # ключ сесії
+        if not self.request.session.session_key:
+            self.request.session.create()
+
+        session_key = self.request.session.session_key
+
         print('GET:', self.request.GET)
         print('POST:', self.request.POST)
         print('QUERY:', self.query)
+
         if self.query:
 
-            drugs_apteka911 = apteka911.search_preparaty(self.query)
-            # drugs_db = DrugApteka911.objects.filter(productNameNormalized__icontains=self.query.casefold(), productAvail=True)
-            drugs_add = apteka_dobrogo_dnia.search_preparaty(self.query)
+            if self.request.method == 'POST':
+                """ пошук за введеним пошуковим словом """
 
-            if drugs_apteka911:
+                # очистити таблицю перед новим пошуком
+                with transaction.atomic():
+                    SearchResult.objects.filter(
+                        session_key=self.request.session.session_key
+                    ).delete()
 
-                print(f'Знайдено {len(drugs_apteka911)} препаратів {drugs_apteka911[0]['pharmacy']}')
+                count_drugs_apteka911 = apteka911.search_preparaty(self.query, session_key)
+                count_drugs_add = apteka_dobrogo_dnia.search_preparaty(self.query, session_key)
 
+                print(f'Знайдено {count_drugs_apteka911} препаратів в Аптека 911')
 
-            if drugs_add:
-                print(f'Знайдено {len(drugs_add)} препаратів')
+                print(f'Знайдено {count_drugs_add} препаратів в Аптека доброго дня')
 
-            list_search.extend(drugs_apteka911)
-            list_search.extend(drugs_add)
-            list_search.sort(key=lambda x: x['productName'])
-            return list_search
+            # list_search.extend(drugs_apteka911)
+            # list_search.extend(drugs_add)
+            # list_search.sort(key=lambda x: x['productName'])
+
+            # відсортуємо знайдені дані
+                list_search = SearchResult.objects.filter(session_key=session_key).order_by('name', 'price')
+                return list_search
+
+            if self.request.method == 'GET':
+                """ пошук за назвою препарату з таблиці """
+                list_search = SearchResult.objects.filter(session_key=session_key, nameNormalized__icontains=self.query.casefold()).order_by('name', 'price')
+                return list_search
 
         return []
 

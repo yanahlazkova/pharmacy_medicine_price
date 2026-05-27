@@ -18,7 +18,8 @@
 
             <tr>
                 <th scope="col">№</th>
-                <th scope="col">Назва</th>
+                <th scope="col">Найменування</th>
+                <th scope="col">Бренд</th>
                 <th scope="col">Ціна</th>
                 <th scope="col">Наявність</th>
                 <th scope="col">Аптека</th>
@@ -41,21 +42,24 @@
                     <a href="#"
                        hx-get="{% url 'home:search' %}"
                        hx-target="#search-content"
-                       hx-vals='{"q": "{{ row.productName }}"}'
+                       hx-vals='{"q": "{{ row.name }}"}'
                        hx-swap="innerHTML"
                        class="product-link">
-                        {{ row.productName|default:"-" }}
+                        {{ row.name|default:"-" }}
                     </a>
 
                 </td>
+                <td>
+                    {{ row.brand|default:"-" }}
+                </td>
 
                 <td>
-                    {{ row.productPrice|default:"-" }}
+                    {{ row.price|default:"-" }}
                 </td>
 
                 <td>
 
-                    {% if row.productAvail %}
+                    {% if row.stock_status|default:"-" %}
 
                     <span class="badge bg-success">
                         Є

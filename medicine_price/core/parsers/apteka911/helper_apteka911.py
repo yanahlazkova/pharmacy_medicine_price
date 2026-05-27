@@ -5,12 +5,16 @@ import json
 import requests
 import random
 
+from django.utils import timezone
+from datetime import timedelta
+
 from bs4 import BeautifulSoup
 from django.db.models.functions import Lower
 from fake_useragent import UserAgent
 from urllib.parse import urljoin, quote
 
 from core.parsers.helper_parser import LIST_PREPARATY
+from home.models import SearchResult
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
 SEEN_URLS = set()  # для збору url категорій
@@ -345,7 +349,7 @@ def get_list_dict(list_search_preparaty):
     ]
 
 
-def search_preparaty(query):
+def search_preparaty(query, session_key):
     """ пошук за назвою препарата """
     session = create_session()
 
@@ -383,19 +387,57 @@ def search_preparaty(query):
         session.close()
         print('Fall session')
 
-        for drug in list_search_preparaty:
-            list_preparaty.append(create_obj_model_drug_apteka911(drug))
+        # for drug in list_search_preparaty:
+        #     list_preparaty.append(create_obj_model_drug_apteka911(drug))
 
-        save_drugs_to_db(list_preparaty, query)
+        # save_drugs_to_db(list_preparaty, query)
 
-        res = get_list_dict(list_search_preparaty)
+        # res = get_list_dict(list_search_preparaty)
+        #
+        # return res if res else None
 
-        return res if res else None
+        # зберегти в таблицю пошуку БД
+        is_save = save_search_results(query, list_search_preparaty, session_key)
+
+        return len(is_save)
 
     except Exception as e:
         print(f"Помилка apteka911: {e}")
         time.sleep(10)  # Довша пауза при помилці
     return None
+
+
+def save_search_results(query, results, session_key):
+    """
+    Зберігає результати пошуку в БД
+    """
+
+    SearchResult.objects.filter(
+        created_at__lt=timezone.now() - timedelta(hours=2)
+    ).delete()
+
+    objects = []
+
+    for drug in results:
+        objects.append(
+            SearchResult(
+                query=query,
+                name=drug['productName'],
+                nameNormalized=drug['productName'].casefold(),
+                session_key=session_key,
+                product_id=int(drug['productID']),
+                pharmacy='Аптека 911',
+                price=drug['productPrice'],
+                alias=f'https://apteka911.ua/ua/shop{drug["alias"]}',
+                brand=drug['tmNameShort'],
+                # image_url=drug.get('image', ''),
+                stock_status=(
+                    SearchResult.StockStatus.IN_STOCK if drug['productAvail'] == 'yes' else SearchResult.StockStatus.OUT_OF_STOCK
+                ),
+            )
+        )
+
+    return SearchResult.objects.bulk_create(objects)
 
 
 def get_count_pages(html):
