@@ -429,8 +429,8 @@ def save_search_results(query, results, session_key):
                 pharmacy='Аптека 911',
                 price=drug['productPrice'],
                 alias=f'https://apteka911.ua/ua/shop{drug["alias"]}',
-                brand=drug['tmNameShort'],
-                # image_url=drug.get('image', ''),
+                brand=drug['tmName'],
+                image_url=f'https://apteka911.ua/content/shop/products/{drug['productID']}{drug["thumb"]}',
                 stock_status=(
                     SearchResult.StockStatus.IN_STOCK if drug['productAvail'] == 'yes' else SearchResult.StockStatus.OUT_OF_STOCK
                 ),
@@ -477,7 +477,10 @@ def get_data_html_page(html):
             products_json = match.group(1)
             products = json.loads(products_json)
 
+
             return products
+            # return [drug for drug in products if is_valid_product(drug, query)]
+
     except Exception as e:
         print(f"Помилка get_data_html_page apteka911: {e}")
         time.sleep(10)  # Довша пауза при помилці

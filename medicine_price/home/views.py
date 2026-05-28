@@ -133,6 +133,7 @@ class SearchView(HTMXTemplateMixin, ListView):
                     ).delete()
 
                 count_drugs_apteka911 = apteka911.search_preparaty(self.query, session_key)
+                # count_drugs_add = apteka_dobrogo_dnia.search_drugs_autocomplete(self.query, session_key)
                 count_drugs_add = apteka_dobrogo_dnia.search_preparaty(self.query, session_key)
 
                 print(f'Знайдено {count_drugs_apteka911} препаратів в Аптека 911')
