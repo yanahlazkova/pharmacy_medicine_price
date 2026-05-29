@@ -9,13 +9,26 @@ from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
 
-# class BasePageViewApteka911(TemplateView):
-class BasePageViewApteka911(HTMXTemplateMixin, TemplateView):
+class BasePageViewApteka911(HTMXTemplateMixin, ListView):
     page_content: tuple[str] = ('pharmacy.html',)
     page_title = 'Аптека 911'
-    date_update_category = None
+
+    query = None
+
     list_categories = []
     list_drugs = []
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        self.query = (
+                self.request.POST.get('q')
+                or self.request.GET.get('q')
+        )
+        print(self.query)
+
+        return DrugApteka911.objects.filter(productNameNormalized__icontains=self.query.casefold()) if self.query else None
 
     def get_page_content(self):
         return list(self.page_content)
@@ -40,12 +53,13 @@ class BasePageViewApteka911(HTMXTemplateMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         ctx.update({
             'page_title': self.page_title,
+            'word_search': self.query,
             'date_update_category': self.get_data_update_categories(),
             'date_update_drugs': self.get_data_update_drugs(),
             'page_content': self.get_page_content(),
             'table': {
                 'table_titles': None,
-                'table_content': CategoryApteka911.objects.all().values(),
+                'table_content': DrugApteka911.objects.all().values()[:5],
             }
         })
         return ctx
@@ -155,7 +169,7 @@ class SearchViewApteka911(HTMXTemplateMixin, ListView):
             drugs = search_preparaty(self.query)
 
             if drugs:
-                print(f'Знайдено {len(drugs)} препаратів')
+                print(f'Знайдено {len(drugs)} препаратів ({drugs[0]['pharmacy']}')
 
             return drugs
 
@@ -180,4 +194,3 @@ class SearchViewApteka911(HTMXTemplateMixin, ListView):
         })
 
         return ctx
-

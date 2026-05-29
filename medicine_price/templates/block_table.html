@@ -18,9 +18,12 @@
 
             <tr>
                 <th scope="col">№</th>
-                <th scope="col">Назва</th>
+                <th scope="col">Img</th>
+                <th scope="col">Найменування</th>
+                <th scope="col">Бренд</th>
                 <th scope="col">Ціна</th>
                 <th scope="col">Наявність</th>
+                <th scope="col">Аптека</th>
                 <th scope="col">Посилання</th>
             </tr>
 
@@ -35,18 +38,31 @@
                 <td>
                     {{ forloop.counter }}
                 </td>
-
                 <td>
-                    {{ row.productName|default:"-" }}
+                    <img src="{{ row.image_url }}" width="100" height="100" alt="Img">
+                </td>
+                <td>
+                    <a href="#"
+                       hx-get="{% url 'home:search' %}"
+                       hx-target="#search-content"
+                       hx-vals='{"q": "{{ row.name }}"}'
+                       hx-swap="innerHTML"
+                       class="product-link">
+                        {{ row.name|default:"-" }}
+                    </a>
+
+                </td>
+                <td>
+                    {{ row.brand|default:"-" }}
                 </td>
 
                 <td>
-                    {{ row.productPrice|default:"-" }}
+                    {{ row.price|default:"-" }}
                 </td>
 
                 <td>
 
-                    {% if row.productAvail %}
+                    {% if row.stock_status|default:"-" %}
 
                     <span class="badge bg-success">
                         Є
@@ -61,12 +77,15 @@
                     {% endif %}
 
                 </td>
+                <td>
+                    {{ row.pharmacy|default:"-" }}
+                </td>
 
                 <td>
 
                     {% if row.alias %}
 
-                    <a href="https://apteka911.ua/ua/shop{{ row.alias }}"
+                    <a href="{{ row.alias }}"
                        target="_blank"
                        class="btn btn-sm btn-outline-info">
 
