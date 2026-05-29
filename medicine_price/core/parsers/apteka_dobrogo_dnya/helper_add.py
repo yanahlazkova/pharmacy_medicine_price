@@ -87,6 +87,7 @@ def search_preparaty(query, session_key):
         time.sleep(10)  # Довша пауза при помилці
     return None
 
+
 # не використовується
 def search_drugs_autocomplete(query, session_key):
     """ autocomplete API, тобто дає швидкі результати
@@ -140,7 +141,9 @@ def save_search_results(query, results, session_key):
     return SearchResult.objects.bulk_create(objects)
 
 
+# не використовується
 def get_list_dict(list_search_preparaty):
+    """ створює словник зі списку знайдених препаратів """
     return [
         {
             'productID': int(drug['id']),
@@ -169,6 +172,7 @@ def get_url_from_srcset(srcset):
 
 
 def get_product_image_url(card):
+    """ """
     image = card.select_one('img.product-image-photo')
 
     if image:
@@ -207,6 +211,7 @@ def get_product_code(card):
 
 
 def get_product_images_by_code(html):
+    """ отримання картинки зі сторінки html"""
     soup = BeautifulSoup(html, 'html.parser')
     images_by_code = {}
 

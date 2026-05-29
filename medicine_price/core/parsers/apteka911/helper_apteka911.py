@@ -148,7 +148,7 @@ def fetch_page(session, url):
 
     return None
 
-
+# не використовується
 def build_image_url(drug):
     try:
         return (
@@ -183,7 +183,7 @@ def create_obj_model_drug_apteka911(product, category_url=None):
     drug_data['productNameNormalized'] = drug_data['productName'].casefold()
     drug_data['productAvail'] = True if product.get('productAvail') == 'yes' else False
     # отримання даних картинки
-    drug_data['img'] = build_image_url(product)
+    drug_data['img'] = drug_data['image']
 
     obj = DrugApteka911(**drug_data)
     return obj
@@ -304,9 +304,9 @@ def update_all_drugs_apteka911(categories):
     save_to_db()
 
 
-""" Search """
+""" Search: методи пошуку препаратів """
 
-
+# не використовується
 def update_drugs_apteka911(producty):
     drugs = DrugApteka911.objects.filter(productNameNormalized__icontains=product_name)
     for drug in drugs:
@@ -335,6 +335,7 @@ def update_drugs_apteka911(producty):
     save_to_db()
 
 
+# не використовується
 def get_list_dict(list_search_preparaty):
     return [
         {
@@ -342,7 +343,7 @@ def get_list_dict(list_search_preparaty):
             'productName': drug['productName'],
             'productAvail': drug['productAvail'],
             'productPrice': drug['productPrice'],
-            'alias': f'https://apteka911.ua/ua/shop{drug["alias"]}',
+            'alias': drug["alias"],
             'pharmacy': 'Аптека 911',
         }
         for drug in list_search_preparaty
@@ -354,7 +355,6 @@ def search_preparaty(query, session_key):
     session = create_session()
 
     list_search_preparaty = []
-    list_preparaty = []
 
     page = 1
 
@@ -428,9 +428,9 @@ def save_search_results(query, results, session_key):
                 product_id=int(drug['productID']),
                 pharmacy='Аптека 911',
                 price=drug['productPrice'],
-                alias=f'https://apteka911.ua/ua/shop{drug["alias"]}',
+                alias=drug["alias"],
                 brand=drug['tmName'],
-                image_url=f'https://apteka911.ua/content/shop/products/{drug['productID']}{drug["thumb"]}',
+                image_url=drug['image'],
                 stock_status=(
                     SearchResult.StockStatus.IN_STOCK if drug['productAvail'] == 'yes' else SearchResult.StockStatus.OUT_OF_STOCK
                 ),
@@ -475,11 +475,18 @@ def get_data_html_page(html):
                 print("PRODUCTS NOT FOUND")
                 return None
             products_json = match.group(1)
+
             products = json.loads(products_json)
 
+            images_by_alias = get_product_images_by_alias(html)
+
+            prefix_alias = 'https://apteka911.ua/ua/shop'
+            for product in products:
+                product['alias'] = f'{prefix_alias}/{product['alias'].lstrip('/')}'
+                product_alias = str(product.get('alias', '')).strip()
+                product['image'] = images_by_alias.get(product_alias)
 
             return products
-            # return [drug for drug in products if is_valid_product(drug, query)]
 
     except Exception as e:
         print(f"Помилка get_data_html_page apteka911: {e}")
@@ -488,6 +495,31 @@ def get_data_html_page(html):
     return None
 
 
+def get_product_alias(card):
+    pass
+
+
+def get_product_images_by_alias(html):
+    soup = BeautifulSoup(html, "html.parser")
+    images_by_alias = {}
+
+    for card in soup.select('.b-prod__tile'):
+        # alias із посилання
+        link = card.select_one('a[href]')
+        if not link:
+            continue
+
+        alias = link.get('href')
+        image = card.select_one('picture > img')
+
+        images_by_alias[alias] = image.get('src')
+
+    return images_by_alias
+
+
+
+
+# не використовується
 def is_valid_product(product, query):
     if product['productAvail'] != 'yes':
         return False
@@ -503,6 +535,7 @@ def is_valid_product(product, query):
     return True
 
 
+# не використовується
 def save_drugs_to_db(products, query):
     list_update = []
     list_create = []
