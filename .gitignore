@@ -1,0 +1,29 @@
+# .gitignore
+
+# Виключити віртуальне середовище
+venv/
+.env/
+env/
+.venv/
+
+# Django та Python службові файли
+__pycache__/
+*.py[cod]
+*.pyc
+*.log
+*.sqlite3 # База даних SQLite
+
+# Секретні файли (КРИТИЧНО ВАЖЛИВО)
+*.env
+.vscode/
+
+# Django-специфічні файли
+static_root/
+media/
+staticfiles/
+
+# Операційні системи
+.DS_Store
+Thumbs.db
+
+.idea

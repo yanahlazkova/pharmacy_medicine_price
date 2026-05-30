@@ -1,0 +1,121 @@
+{% load static %}
+
+<div class="container">
+
+    <h3 class="mt-3 text-info">
+        {{ table.name }}
+    </h3>
+
+    <hr>
+
+    {% if table.table_content %}
+
+    <div class="table-responsive">
+
+        <table class="table table-sm table-striped table-bordered table-hover align-middle">
+
+            <thead class="table-info">
+
+            <tr>
+                <th scope="col">№</th>
+                <th scope="col">Img</th>
+                <th scope="col">Найменування</th>
+                <th scope="col">Бренд</th>
+                <th scope="col">Ціна</th>
+                <th scope="col">Наявність</th>
+                <th scope="col">Аптека</th>
+                <th scope="col">Посилання</th>
+            </tr>
+
+            </thead>
+
+            <tbody>
+
+            {% for row in table.table_content %}
+
+            <tr>
+
+                <td>
+                    {{ forloop.counter }}
+                </td>
+                <td>
+                    <img src="{{ row.image_url }}" width="100" height="100" alt="Img">
+                </td>
+                <td>
+                    <a href="#"
+                       hx-get="{% url 'home:search' %}"
+                       hx-target="#search-content"
+                       hx-vals='{"q": "{{ row.name }}"}'
+                       hx-swap="innerHTML"
+                       class="product-link">
+                        {{ row.name|default:"-" }}
+                    </a>
+
+                </td>
+                <td>
+                    {{ row.brand|default:"-" }}
+                </td>
+
+                <td>
+                    {{ row.price|default:"-" }}
+                </td>
+
+                <td>
+
+                    {% if row.stock_status|default:"-" %}
+
+                    <span class="badge bg-success">
+                        Є
+                    </span>
+
+                    {% else %}
+
+                    <span class="badge bg-danger">
+                        Немає
+                    </span>
+
+                    {% endif %}
+
+                </td>
+                <td>
+                    {{ row.pharmacy|default:"-" }}
+                </td>
+
+                <td>
+
+                    {% if row.alias %}
+
+                    <a href="{{ row.alias }}"
+                       target="_blank"
+                       class="btn btn-sm btn-outline-info">
+
+                        Перейти
+                    </a>
+
+                    {% else %}
+
+                    -
+
+                    {% endif %}
+
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    {% else %}
+
+    <div class="alert alert-warning">
+        Нічого не знайдено
+    </div>
+
+    {% endif %}
+
+</div>
