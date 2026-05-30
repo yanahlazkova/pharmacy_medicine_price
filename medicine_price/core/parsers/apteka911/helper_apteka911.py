@@ -495,11 +495,8 @@ def get_data_html_page(html):
     return None
 
 
-def get_product_alias(card):
-    pass
-
-
 def get_product_images_by_alias(html):
+    """ отримати url картинки по alias """
     soup = BeautifulSoup(html, "html.parser")
     images_by_alias = {}
 

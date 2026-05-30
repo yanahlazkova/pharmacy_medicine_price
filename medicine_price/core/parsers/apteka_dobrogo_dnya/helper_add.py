@@ -207,6 +207,8 @@ def get_product_image_url(card):
 
 
 def get_product_code(card):
+    """ отримання коду препарату зі сторінки """
+
     form = card.select_one('form[data-product-sku]')
     if form and form.get('data-product-sku'):
         return form.get('data-product-sku').strip()
@@ -241,7 +243,6 @@ def get_alias_and_images_by_code(html):
 
 def get_data_html_page(html):
     try:
-
         if 'products' in html:
             # match = re.search(r'products:(\[\{.*?\})', html, re.DOTALL)
             start = html.find('products:[{')
