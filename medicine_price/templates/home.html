@@ -35,15 +35,22 @@
                     </div>
                 </div>
 
-                {% for key, pharm in pharmacy.items %}
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="" id="{{ key }}" checked>
-                    <label class="form-check-label text-info" for="{{ key }}">
-                        {{ pharm }}
-                    </label>
+                <div id="pharmacy-filters">
+                    <button type="button" class="btn btn-light mb-3"></button>
+                    {% for key, pharm in pharmacy.items %}
+                    <div class="form-check">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               name="pharmacies"
+                               value="{{ key }}"
+                               id="{{ key }}"
+                               checked>
+                        <label class="form-check-label text-info" for="{{ key }}">
+                            {{ pharm.name }}
+                        </label>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-
             </form>
         </div>
     </div>
