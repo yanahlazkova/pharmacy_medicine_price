@@ -35,8 +35,21 @@
                     </div>
                 </div>
 
+                <div class="mb-2">
+    <button type="button"
+            class="btn btn-sm btn-outline-info bi bi-check-all"
+            onclick="selectAllPharmacies()">
+        <!-- Вибрати всі -->
+    </button>
+
+    <button type="button"
+            class="btn btn-sm btn-outline-secondary bi bi-dash"
+            onclick="clearAllPharmacies()">
+        <!-- Зняти всі -->
+    </button>
+</div>
+
                 <div id="pharmacy-filters">
-                    <button type="button" class="btn btn-light mb-3"></button>
                     {% for key, pharm in pharmacy.items %}
                     <div class="form-check">
                         <input class="form-check-input"
@@ -65,3 +78,17 @@
         </div>
     </div>
 </div>
+
+<script>
+function selectAllPharmacies() {
+    document
+        .querySelectorAll('#pharmacy-filters input[name="pharmacies"]')
+        .forEach(checkbox => checkbox.checked = true);
+}
+
+function clearAllPharmacies() {
+    document
+        .querySelectorAll('#pharmacy-filters input[name="pharmacies"]')
+        .forEach(checkbox => checkbox.checked = false);
+}
+</script>
