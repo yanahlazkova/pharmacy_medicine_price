@@ -1,3 +1,5 @@
+from random import choice
+
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -13,9 +15,18 @@ from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import DrugApteka911
 
 LIST_PHARMACY = {
-    'apteka911': 'Аптека 911',
-    'add': 'Аптека доброго дня',
-    '1sa': 'Перша соціальна аптека',
+    'apteka911': {
+        'name': 'Аптека 911',
+        'function': apteka911.search_preparaty,
+    },
+    'add': {
+        'name': 'Аптека доброго дня',
+        'function': apteka_dobrogo_dnia.search_preparaty,
+    },
+    '1sa': {
+        'name': 'Перша соціальна аптека',
+        'function': None,
+    },
 }
 
 class HomePageView(HTMXTemplateMixin, TemplateView):
@@ -107,9 +118,10 @@ class SearchView(HTMXTemplateMixin, ListView):
     def get_queryset(self):
 
         self.query = (
-            self.request.GET.get('q')
-            or self.request.POST.get('q')
+                self.request.GET.get('q')
+                or self.request.POST.get('q')
         )
+        selected_pharmacies = self.request.POST.getlist('pharmacies')
 
         # ключ сесії
         if not self.request.session.session_key:
@@ -120,6 +132,7 @@ class SearchView(HTMXTemplateMixin, ListView):
         print('GET:', self.request.GET)
         print('POST:', self.request.POST)
         print('QUERY:', self.query)
+        print(f"Обрані аптеки: {selected_pharmacies}")
 
         if self.query:
 
@@ -132,25 +145,27 @@ class SearchView(HTMXTemplateMixin, ListView):
                         session_key=self.request.session.session_key
                     ).delete()
 
-                count_drugs_apteka911 = apteka911.search_preparaty(self.query, session_key)
-                # count_drugs_add = apteka_dobrogo_dnia.search_drugs_autocomplete(self.query, session_key)
-                count_drugs_add = apteka_dobrogo_dnia.search_preparaty(self.query, session_key)
+                for pharmacy in selected_pharmacies:
+                    search_func = LIST_PHARMACY.get(pharmacy).get('function')
+                    if search_func:
+                        count_drugs = search_func(self.query, session_key)
+                        print(f'Знайдено {count_drugs} препаратів в {LIST_PHARMACY.get(pharmacy).get('name')}')
+                    else:
+                        print(f'Не опрацьовується: {LIST_PHARMACY.get(pharmacy).get('name')}')
 
-                print(f'Знайдено {count_drugs_apteka911} препаратів в Аптека 911')
+                # list_search.extend(drugs_apteka911)
+                # list_search.extend(drugs_add)
+                # list_search.sort(key=lambda x: x['productName'])
 
-                print(f'Знайдено {count_drugs_add} препаратів в Аптека доброго дня')
-
-            # list_search.extend(drugs_apteka911)
-            # list_search.extend(drugs_add)
-            # list_search.sort(key=lambda x: x['productName'])
-
-            # відсортуємо знайдені дані
+                # відсортуємо знайдені дані
                 list_search = SearchResult.objects.filter(session_key=session_key).order_by('name', 'price')
                 return list_search
 
             if self.request.method == 'GET':
                 """ пошук за назвою препарату з таблиці """
-                list_search = SearchResult.objects.filter(session_key=session_key, nameNormalized__icontains=self.query.casefold()).order_by('name', 'price')
+                list_search = SearchResult.objects.filter(session_key=session_key,
+                                                          nameNormalized__icontains=self.query.casefold()).order_by(
+                    'name', 'price')
                 return list_search
 
         return []
@@ -174,7 +189,6 @@ class SearchView(HTMXTemplateMixin, ListView):
         })
 
         return ctx
-
 
 # class SearchByNameView(HTMXTemplateMixin, ListView):
 #     page_content = ('block_table.html',)
