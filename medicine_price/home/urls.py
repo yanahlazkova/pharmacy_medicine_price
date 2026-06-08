@@ -8,5 +8,4 @@ app_name = 'home'
 urlpatterns = [
     path('', HomePageView.as_view(), name='home'),
     path('search/', SearchView.as_view(), name='search'),
-    # path('search/name', SearchByNameView.as_view(), name='search_by_name'),
 ]

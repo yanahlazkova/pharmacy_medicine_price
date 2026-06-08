@@ -51,7 +51,9 @@ class BasePageViewApteka911(HTMXTemplateMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+
         ctx.update({
+            'current_pharmacy': 'apteka911',
             'page_title': self.page_title,
             'word_search': self.query,
             'date_update_category': self.get_data_update_categories(),
@@ -104,37 +106,6 @@ class UpdateAllDrugsViewApteka911(HTMXTemplateMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        # with open('apteka911.json') as f:
-        #     file_content = f.read()
-        #     preparaty_json = json.loads(file_content)
-        #
-        #     for drug in preparaty_json:
-        #         try:
-        #             DrugApteka911.objects.update_or_create(
-        #                 productID=drug['productID'],
-        #                 defaults={
-        #                     'category': drug['category'],
-        #                     'productName': drug['productName'],
-        #                     'alias': drug['alias'],
-        #                     'brandName': drug['brandName'],
-        #                     'formName': drug['formName'],
-        #                     'productAvail': True if drug['productAvail'] == 'yes' else False,
-        #                     'productCountry': drug['productCountry'],
-        #                     'productForm': drug['productForm'],
-        #                     'productMeasure': drug['productMeasure'],
-        #                     'productMname': drug['productMname'],
-        #                     'productPrice': drug['productPrice'],
-        #                     'img': drug['img'],
-        #
-        #                     # 'img': f"https://apteka911.ua{drug.get('dataUrl', '')}{drug.get('productThumbs', {}).get('webpmid', {}).get('file', '')}",
-        #
-        #                 }
-        #             )
-        #         except Exception as e:
-        #             print(f"[DB ERROR]: {e}")
-        #
-        # print("Updated preparaty")
-
 
         ctx.update({
             'date_update_drugs': 'updated',
