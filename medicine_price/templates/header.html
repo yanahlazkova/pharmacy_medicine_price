@@ -62,6 +62,10 @@
 
                 {% csrf_token %}
 
+                {% if current_pharmacy %}
+                    <input type="hidden" name="pharmacies" value="{{ current_pharmacy }}">
+                {% endif %}
+
                 <div class="form-floating w-100">
                     <!-- Ключове: name="q" дозволить Django отримати дані -->
                     <input class="form-control" name='q' type="search" placeholder="Search" id="search"/>

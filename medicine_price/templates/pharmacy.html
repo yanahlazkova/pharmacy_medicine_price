@@ -5,7 +5,7 @@
         <div class="card-header">
             <h2 class="text-info text-center">{{ page_title }}</h2>
         </div>
-        {% comment %}
+{% comment %}
         <div class="card-body">
             <div class="bd-callout-info border-left-color-info" id="category-message">
                 <p class="card-title">Дата останнього оновлення категорій:</p>
@@ -26,7 +26,7 @@
                 Оновити категорії
             </a>
         </div>
-        {% endcomment %}
+{% endcomment %}
         <div class="row p-3">
             <div class="col-sm-6 mb-3 mb-sm-0">
                 <div class="card">
@@ -146,7 +146,8 @@
                             </div>
                         </div>
                     </div>
-                    {% comment %}
+
+{% comment %}
                     <div class="col-sm-6">
                         <div class="card mb-3">
                             <div class="card-body">
@@ -168,7 +169,7 @@
                     </div>
                     {% endcomment %}
                 </div>
-                {% include 'block_table.html' %}
+                {% include 'block_table.html' with table=search_preparaty %}
             </div>
         </div>
     </div>

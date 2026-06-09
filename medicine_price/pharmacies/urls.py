@@ -10,5 +10,4 @@ urlpatterns = [
     path('apteka911/', BasePageViewApteka911.as_view(), name='apteka911'),
     path('apteka911/update_categories/', UpdateCategoryViewApteka911.as_view(), name='update_cat_apteka911'),
     path('apteka911/update_drugs/', UpdateAllDrugsViewApteka911.as_view(), name='update_drugs_apteka911'),
-    path('apteka911/search/', SearchView.as_view(), name='search'),
 ]
