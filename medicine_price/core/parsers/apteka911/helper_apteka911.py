@@ -358,7 +358,7 @@ def search_preparaty(request, query, session_key):
     session = create_session()
 
     if not session:
-        return None, f'f"Аптека 911 зараз недоступна. Спробуйте пізніше."'
+        return None, f"Аптека 911 зараз недоступна. Спробуйте пізніше."
 
     list_search_preparaty = []
 
@@ -411,7 +411,7 @@ def search_preparaty(request, query, session_key):
     except Exception as e:
         print(f"Помилка apteka911: {e}")
         time.sleep(10)  # Довша пауза при помилці
-    return None
+    return None, None
 
 
 def save_search_results(query, results, session_key):
