@@ -148,6 +148,7 @@ def fetch_page(session, url):
 
     return None
 
+
 # не використовується
 def build_image_url(drug):
     try:
@@ -306,6 +307,7 @@ def update_all_drugs_apteka911(categories):
 
 """ Search: методи пошуку препаратів """
 
+
 # не використовується
 def update_drugs_apteka911(producty):
     drugs = DrugApteka911.objects.filter(productNameNormalized__icontains=product_name)
@@ -314,8 +316,7 @@ def update_drugs_apteka911(producty):
 
     global EXISTING_PRODUCTS
     EXISTING_PRODUCTS = {
-        drug.productID: drug.id
-        for drug in drugs
+        drug.productID: drug.id for drug in drugs
     }
 
     existing_url_categories = set(drug.category for drug in drugs)
@@ -350,7 +351,7 @@ def get_list_dict(list_search_preparaty):
     ]
 
 
-def search_preparaty(query, session_key):
+def search_preparaty(request, query, session_key):
     """ пошук за назвою препарата """
     session = create_session()
 
@@ -432,7 +433,8 @@ def save_search_results(query, results, session_key):
                 brand=drug['tmName'],
                 image_url=drug['image'],
                 stock_status=(
-                    SearchResult.StockStatus.IN_STOCK if drug['productAvail'] == 'yes' else SearchResult.StockStatus.OUT_OF_STOCK
+                    SearchResult.StockStatus.IN_STOCK if drug[
+                                                             'productAvail'] == 'yes' else SearchResult.StockStatus.OUT_OF_STOCK
                 ),
             )
         )
@@ -495,11 +497,8 @@ def get_data_html_page(html):
     return None
 
 
-def get_product_alias(card):
-    pass
-
-
 def get_product_images_by_alias(html):
+    """ отримати url картинки по alias """
     soup = BeautifulSoup(html, "html.parser")
     images_by_alias = {}
 
@@ -515,8 +514,6 @@ def get_product_images_by_alias(html):
         images_by_alias[alias] = image.get('src')
 
     return images_by_alias
-
-
 
 
 # не використовується

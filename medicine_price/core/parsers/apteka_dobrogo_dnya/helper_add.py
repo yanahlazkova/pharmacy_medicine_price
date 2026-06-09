@@ -2,6 +2,7 @@ import time
 import re
 import json
 
+from django.shortcuts import render
 from django.utils import timezone
 from datetime import timedelta
 
@@ -27,22 +28,27 @@ def create_session():
         "Accept": "text/html,application/xhtml+xml",
     })
 
-    session.get("https://www.add.ua")
+    try:
+        session.get("https://www.add.ua")
 
-    session.cookies.update({
+        session.cookies.update({
         'region': 'borispil'
-    })
+        })
 
-    return session
+        return session
+    except requests.exceptions.RequestException as e:
+        return None, f"Аптека ADD зараз недоступна. Спробуйте пізніше."
 
 
-print('End session')
-
-
-def search_preparaty(query, session_key):
+def search_preparaty(request, query, session_key):
     """ пошук за назвою препарата """
-    session = create_session()
-
+    session, error = create_session()
+    if error:
+        return render(
+            request,
+            "search/result.html",
+            {"error": error}
+        )
     list_preparaty = []
 
     page = 1
@@ -129,7 +135,7 @@ def save_search_results(query, results, session_key):
                 product_id=drug['id'],
                 pharmacy='Аптека доброго дня',
                 price=drug['price'],
-                alias=f'https://www.add.ua/ua/catalogsearch/result/?q={drug["name"]}',
+                alias= drug['alias'],# f'https://www.add.ua/ua/catalogsearch/result/?q={drug["name"]}',
                 brand=drug.get('brand', ''),
                 image_url=drug.get('image', ''),
                 stock_status=(
@@ -151,7 +157,7 @@ def get_list_dict(list_search_preparaty):
             'productAvail': True,
             'productPrice': drug['price'],
             'image': drug.get('image'),
-            'alias': f'https://www.add.ua/ua/catalogsearch/result/?q={drug["name"]}',
+            'alias': drug.get('alias'), # f'https://www.add.ua/ua/catalogsearch/result/?q={drug["name"]}',
             'pharmacy': 'Аптека доброго дня',
         }
         for drug in list_search_preparaty
@@ -171,8 +177,18 @@ def get_url_from_srcset(srcset):
     return candidates[-1] if candidates else None
 
 
+def get_product_url(card):
+    """ отримати посилання на сторінку препарату """
+
+    link = card.select_one('a.product-item-photo')
+
+    if link:
+        return link.get('href')
+    else: return '#'
+
+
 def get_product_image_url(card):
-    """ """
+    """ отримати url картинки """
     image = card.select_one('img.product-image-photo')
 
     if image:
@@ -197,6 +213,8 @@ def get_product_image_url(card):
 
 
 def get_product_code(card):
+    """ отримання коду препарату зі сторінки """
+
     form = card.select_one('form[data-product-sku]')
     if form and form.get('data-product-sku'):
         return form.get('data-product-sku').strip()
@@ -210,24 +228,27 @@ def get_product_code(card):
     return None
 
 
-def get_product_images_by_code(html):
+def get_alias_and_images_by_code(html):
     """ отримання картинки зі сторінки html"""
     soup = BeautifulSoup(html, 'html.parser')
     images_by_code = {}
 
     for card in soup.select('li.product-item'):
         code = get_product_code(card)
+        alias = get_product_url(card)
         image_url = get_product_image_url(card)
 
-        if code and image_url:
-            images_by_code[code] = image_url
+        if code:
+            images_by_code[code] = {
+                'alias': alias if alias else '#',
+                'image': image_url if image_url else "",
+            }
 
     return images_by_code
 
 
 def get_data_html_page(html):
     try:
-
         if 'products' in html:
             # match = re.search(r'products:(\[\{.*?\})', html, re.DOTALL)
             start = html.find('products:[{')
@@ -247,11 +268,12 @@ def get_data_html_page(html):
             products_json = match.group(0)
 
             products = json.loads(products_json)
-            images_by_code = get_product_images_by_code(html)
+            alias_and_images_by_code = get_alias_and_images_by_code(html)
 
             for product in products:
                 product_code = str(product.get('id', '')).strip()
-                product['image'] = images_by_code.get(product_code)
+                product['image'] = alias_and_images_by_code.get(product_code, '').get('image', '')
+                product['alias'] = alias_and_images_by_code.get(product_code, '').get('alias', '')
 
             return products
     except Exception as e:

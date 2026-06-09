@@ -7,6 +7,7 @@ from django.views.generic import TemplateView, ListView
 
 # from core.parsers.apteka911.helper_apteka911 import search_preparaty
 from core.parsers.apteka911 import helper_apteka911 as apteka911
+from core.parsers.apteka1sa import helper_1sa as apteka1sa
 
 from core.parsers.apteka_dobrogo_dnya import helper_add as apteka_dobrogo_dnia
 from home.models import SearchResult
@@ -144,11 +145,11 @@ class SearchView(HTMXTemplateMixin, ListView):
                     SearchResult.objects.filter(
                         session_key=self.request.session.session_key
                     ).delete()
-
+                # count_drugs_1sa = apteka1sa.search_preparaty(self.query, session_key)
                 for pharmacy in selected_pharmacies:
                     search_func = LIST_PHARMACY.get(pharmacy).get('function')
                     if search_func:
-                        count_drugs = search_func(self.query, session_key)
+                        count_drugs = search_func(self.request, self.query, session_key)
                         print(f'Знайдено {count_drugs} препаратів в {LIST_PHARMACY.get(pharmacy).get('name')}')
                     else:
                         print(f'Не опрацьовується: {LIST_PHARMACY.get(pharmacy).get('name')}')
