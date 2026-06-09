@@ -165,8 +165,12 @@ class SearchView(HTMXTemplateMixin, ListView):
                 for pharmacy in selected_pharmacies:
                     search_func = LIST_PHARMACY.get(pharmacy).get('function')
                     if search_func:
-                        count_drugs = search_func(self.request, self.query, session_key)
-                        print(f'Знайдено {count_drugs} препаратів в {LIST_PHARMACY.get(pharmacy).get('name')}')
+                        count_drugs, error = search_func(self.request, self.query, session_key)
+                        if error:
+                            print(f'error: {error}')
+                        else:
+                            print(f'Знайдено {count_drugs} препаратів в {LIST_PHARMACY.get(pharmacy).get('name')}')
+
                     else:
                         print(f'Не опрацьовується: {LIST_PHARMACY.get(pharmacy).get('name')}')
 

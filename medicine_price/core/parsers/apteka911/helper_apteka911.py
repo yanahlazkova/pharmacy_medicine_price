@@ -112,18 +112,18 @@ def update_categories_db(categories):
 
 def create_session():
     ua = UserAgent()
-    with requests.Session() as session:
-        print('Start session')
-        # session = requests.Session()
+    session = requests.Session()
+    print('Start session')
 
-        session.headers.update({
-            "User-Agent": ua.random,
-            "Accept": "application/json, text/javascript, */*; q=0.01",
-            "X-Requested-With": "XMLHttpRequest",
-        })
+    session.headers.update({
+        "User-Agent": ua.random,
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest",
+    })
 
+    try:
+        session.get("https://apteka911.ua/ua", timeout=10)
         # ініціалізація cookies
-        session.get("https://apteka911.ua/ua")
 
         session.cookies.update({
             "site_version": "desktop",
@@ -131,7 +131,8 @@ def create_session():
         })
 
         return session
-    print('End session')
+    except requests.exceptions.RequestException:
+        return None
 
 
 def fetch_page(session, url):
@@ -354,9 +355,10 @@ def get_list_dict(list_search_preparaty):
 def search_preparaty(request, query, session_key):
     """ пошук за назвою препарата """
 
-
-
     session = create_session()
+
+    if not session:
+        return None, f'f"Аптека 911 зараз недоступна. Спробуйте пізніше."'
 
     list_search_preparaty = []
 
@@ -373,7 +375,7 @@ def search_preparaty(request, query, session_key):
 
         data = get_data_html_page(html)
         if not data:
-            return None
+            return None, None
 
         list_search_preparaty.extend(drug for drug in data)
 
@@ -404,7 +406,7 @@ def search_preparaty(request, query, session_key):
         # зберегти в таблицю пошуку БД
         is_save = save_search_results(query, list_search_preparaty, session_key)
 
-        return len(is_save)
+        return len(is_save), None
 
     except Exception as e:
         print(f"Помилка apteka911: {e}")

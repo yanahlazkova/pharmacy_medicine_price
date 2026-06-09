@@ -37,18 +37,15 @@ def create_session():
 
         return session
     except requests.exceptions.RequestException as e:
-        return None, f"Аптека ADD зараз недоступна. Спробуйте пізніше."
+        return None
 
 
 def search_preparaty(request, query, session_key):
     """ пошук за назвою препарата """
-    session, error = create_session()
-    if error:
-        return render(
-            request,
-            "search/result.html",
-            {"error": error}
-        )
+    session = create_session()
+    if not session:
+        return None, f"Аптека ADD зараз недоступна. Спробуйте пізніше."
+
     list_preparaty = []
 
     page = 1
@@ -64,7 +61,7 @@ def search_preparaty(request, query, session_key):
 
         data = get_data_html_page(html)
         if not data:
-            return None
+            return None, None
         list_preparaty.extend(drug for drug in data if query.casefold() in drug['name'].casefold())
         while page < total_pages:
             page += 1
@@ -85,7 +82,7 @@ def search_preparaty(request, query, session_key):
         # зберегти в БД
         is_save = save_search_results(query,list_preparaty, session_key)
 
-        return len(is_save)
+        return len(is_save), None
 
 
     except Exception as e:
