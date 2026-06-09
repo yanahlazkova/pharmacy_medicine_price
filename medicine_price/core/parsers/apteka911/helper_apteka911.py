@@ -426,6 +426,7 @@ def save_search_results(query, results, session_key):
     objects = []
 
     for drug in results:
+        # print(f'image=: {drug['image']}')
         objects.append(
             SearchResult(
                 query=query,
@@ -487,6 +488,7 @@ def get_data_html_page(html):
             products = json.loads(products_json)
 
             images_by_alias = get_product_images_by_alias(html)
+            # print(f'images_by_alias: {images_by_alias}')
 
             prefix_alias = 'https://apteka911.ua/ua/shop'
             for product in products:

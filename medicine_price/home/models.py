@@ -70,7 +70,7 @@ class SearchResult(models.Model):
 
     # картинка
     image_url = models.URLField(
-        max_length=1000,
+        # max_length=1000,
         blank=True,
         null=True,
         verbose_name="Картинка"
