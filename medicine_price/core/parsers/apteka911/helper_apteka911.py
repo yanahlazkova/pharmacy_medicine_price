@@ -112,18 +112,18 @@ def update_categories_db(categories):
 
 def create_session():
     ua = UserAgent()
-    with requests.Session() as session:
-        print('Start session')
-        # session = requests.Session()
+    session = requests.Session()
+    print('Start session')
 
-        session.headers.update({
-            "User-Agent": ua.random,
-            "Accept": "application/json, text/javascript, */*; q=0.01",
-            "X-Requested-With": "XMLHttpRequest",
-        })
+    session.headers.update({
+        "User-Agent": ua.random,
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest",
+    })
 
+    try:
+        session.get("https://apteka911.ua/ua", timeout=10)
         # ініціалізація cookies
-        session.get("https://apteka911.ua/ua")
 
         session.cookies.update({
             "site_version": "desktop",
@@ -131,7 +131,8 @@ def create_session():
         })
 
         return session
-    print('End session')
+    except requests.exceptions.RequestException:
+        return None
 
 
 def fetch_page(session, url):
@@ -147,6 +148,7 @@ def fetch_page(session, url):
         return response.json()
 
     return None
+
 
 # не використовується
 def build_image_url(drug):
@@ -306,6 +308,7 @@ def update_all_drugs_apteka911(categories):
 
 """ Search: методи пошуку препаратів """
 
+
 # не використовується
 def update_drugs_apteka911(producty):
     drugs = DrugApteka911.objects.filter(productNameNormalized__icontains=product_name)
@@ -314,8 +317,7 @@ def update_drugs_apteka911(producty):
 
     global EXISTING_PRODUCTS
     EXISTING_PRODUCTS = {
-        drug.productID: drug.id
-        for drug in drugs
+        drug.productID: drug.id for drug in drugs
     }
 
     existing_url_categories = set(drug.category for drug in drugs)
@@ -350,12 +352,13 @@ def get_list_dict(list_search_preparaty):
     ]
 
 
-def search_preparaty(query, session_key):
+def search_preparaty(request, query, session_key):
     """ пошук за назвою препарата """
 
-
-
     session = create_session()
+
+    if not session:
+        return None, f'f"Аптека 911 зараз недоступна. Спробуйте пізніше."'
 
     list_search_preparaty = []
 
@@ -372,7 +375,7 @@ def search_preparaty(query, session_key):
 
         data = get_data_html_page(html)
         if not data:
-            return None
+            return None, None
 
         list_search_preparaty.extend(drug for drug in data)
 
@@ -403,7 +406,7 @@ def search_preparaty(query, session_key):
         # зберегти в таблицю пошуку БД
         is_save = save_search_results(query, list_search_preparaty, session_key)
 
-        return len(is_save)
+        return len(is_save), None
 
     except Exception as e:
         print(f"Помилка apteka911: {e}")
@@ -436,7 +439,8 @@ def save_search_results(query, results, session_key):
                 brand=drug['tmName'],
                 image_url=drug['image'],
                 stock_status=(
-                    SearchResult.StockStatus.IN_STOCK if drug['productAvail'] == 'yes' else SearchResult.StockStatus.OUT_OF_STOCK
+                    SearchResult.StockStatus.IN_STOCK if drug[
+                                                             'productAvail'] == 'yes' else SearchResult.StockStatus.OUT_OF_STOCK
                 ),
             )
         )
@@ -500,11 +504,8 @@ def get_data_html_page(html):
     return None
 
 
-def get_product_alias(card):
-    pass
-
-
 def get_product_images_by_alias(html):
+    """ отримати url картинки по alias """
     soup = BeautifulSoup(html, "html.parser")
     images_by_alias = {}
 
@@ -520,8 +521,6 @@ def get_product_images_by_alias(html):
         images_by_alias[alias] = image.get('src') if image else ""
 
     return images_by_alias
-
-
 
 
 # не використовується
