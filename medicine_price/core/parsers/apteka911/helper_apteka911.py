@@ -353,6 +353,9 @@ def get_list_dict(list_search_preparaty):
 
 def search_preparaty(request, query, session_key):
     """ пошук за назвою препарата """
+
+
+
     session = create_session()
 
     list_search_preparaty = []
@@ -376,6 +379,7 @@ def search_preparaty(request, query, session_key):
 
         while page < total_pages:
             page += 1
+            print(f'page: {page}')
             url = f"https://apteka911.ua/ua/shop/search/page={page}?query={quote(query)}"
 
             response = session.get(url, headers=session.headers, timeout=10)
@@ -484,6 +488,7 @@ def get_data_html_page(html):
 
             prefix_alias = 'https://apteka911.ua/ua/shop'
             for product in products:
+                # print(f'product name: {product["productName"]}')
                 product['alias'] = f'{prefix_alias}/{product['alias'].lstrip('/')}'
                 product_alias = str(product.get('alias', '')).strip()
                 product['image'] = images_by_alias.get(product_alias)
@@ -511,7 +516,7 @@ def get_product_images_by_alias(html):
         alias = link.get('href')
         image = card.select_one('picture > img')
 
-        images_by_alias[alias] = image.get('src')
+        images_by_alias[alias] = image.get('src') if image else ""
 
     return images_by_alias
 

@@ -1,6 +1,7 @@
 from django.urls import path
 from unicodedata import category
 
+from home.views import SearchView
 from pharmacies.views.apteka911 import BasePageViewApteka911, UpdateCategoryViewApteka911, UpdateAllDrugsViewApteka911
 
 app_name = 'pharmacies'

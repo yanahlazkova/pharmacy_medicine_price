@@ -30,12 +30,22 @@ LIST_PHARMACY = {
     },
 }
 
-class HomePageView(HTMXTemplateMixin, TemplateView):
+class HomePageView(HTMXTemplateMixin, ListView):
     page_content: tuple[str] = ('home.html',)
     page_title = 'Порівнюй ціни - обирай найкраще'
 
     template_name = "base_page.html"
     htmx_template_name = 'htmx_page.html'
+
+    def get_queryset(self):
+        # ключ сесії
+        if not self.request.session.session_key:
+            self.request.session.create()
+
+        session_key = self.request.session.session_key
+
+        list_search = SearchResult.objects.filter(session_key=session_key).order_by('name', 'price')
+        return list_search
 
     def get_page_content(self):
         return list(self.page_content)
@@ -48,7 +58,11 @@ class HomePageView(HTMXTemplateMixin, TemplateView):
             'page_title': self.page_title,
             'pharmacy': LIST_PHARMACY,
             'page_content': self.get_page_content(),
-        })
+            'table': {
+                'table_content': ctx['object_list'],
+                }
+            })
+
         return ctx
 
 
@@ -114,6 +128,8 @@ class SearchView(HTMXTemplateMixin, ListView):
     query = None
 
     def post(self, request, *args, **kwargs):
+        # HTMX відправляє POST, але ListView працює через GET.
+        # Ми кажемо Django: "Оброби цей POST як звичайний запит списку"
         return self.get(request, *args, **kwargs)
 
     def get_queryset(self):
@@ -178,6 +194,7 @@ class SearchView(HTMXTemplateMixin, ListView):
         ctx = super().get_context_data(**kwargs)
 
         ctx.update({
+            'form_search': 'search',
             'page_title': 'Результати пошуку',
             'query': self.query,
             'pharmacy': LIST_PHARMACY,
