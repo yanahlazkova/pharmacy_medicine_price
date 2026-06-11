@@ -161,7 +161,7 @@ class SearchView(HTMXTemplateMixin, ListView):
                     SearchResult.objects.filter(
                         session_key=self.request.session.session_key
                     ).delete()
-                # count_drugs_1sa = apteka1sa.search_preparaty(self.query, session_key)
+                count_drugs_1sa = apteka1sa.search_preparaty(self.query, session_key)
                 for pharmacy in selected_pharmacies:
                     search_func = LIST_PHARMACY.get(pharmacy).get('function')
                     if search_func:
