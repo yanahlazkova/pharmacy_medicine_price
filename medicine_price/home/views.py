@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.generic import TemplateView, ListView
 
+# from core.parsers.apteka1sa.helper_1sa import search_preparaty
 # from core.parsers.apteka911.helper_apteka911 import search_preparaty
 from core.parsers.apteka911 import helper_apteka911 as apteka911
 from core.parsers.apteka1sa import helper_1sa as apteka1sa
@@ -26,7 +27,7 @@ LIST_PHARMACY = {
     },
     '1sa': {
         'name': 'Перша соціальна аптека',
-        'function': None,
+        'function': apteka1sa.search_preparaty,
     },
 }
 
@@ -161,7 +162,7 @@ class SearchView(HTMXTemplateMixin, ListView):
                     SearchResult.objects.filter(
                         session_key=self.request.session.session_key
                     ).delete()
-                count_drugs_1sa = apteka1sa.search_preparaty(self.query, session_key)
+                # count_drugs_1sa = apteka1sa.search_preparaty(self.query, session_key)
                 for pharmacy in selected_pharmacies:
                     search_func = LIST_PHARMACY.get(pharmacy).get('function')
                     if search_func:

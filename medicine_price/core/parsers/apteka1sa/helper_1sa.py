@@ -1,12 +1,17 @@
 import json
 import re
 import time
+from datetime import timedelta
 
 import requests
 from bs4 import BeautifulSoup
+from django.utils import timezone
 from fake_useragent import UserAgent
 
 from urllib.parse import quote, urljoin
+
+from core.parsers.apteka_dobrogo_dnya.helper_add import get_product_code, get_product_url, get_alias_and_images_by_code
+from home.models import SearchResult
 
 
 def create_session():
@@ -36,7 +41,7 @@ def create_session():
         return None
 
 
-def search_preparaty(query, session_key):
+def search_preparaty(request, query, session_key):
     """ пошук за назвою препарата """
     session = create_session()
 
@@ -58,12 +63,10 @@ def search_preparaty(query, session_key):
 
         html = response.text
 
-        soup = BeautifulSoup(html, "html.parser")
-
         # отримаємо кількість сторінок
-        total_pages = get_count_pages(soup)
+        total_pages = get_count_pages(html)
 
-        data = get_data_html_page(soup)
+        data = get_data_html_page(html)
 
         if not data:
             return None, None
@@ -87,15 +90,19 @@ def search_preparaty(query, session_key):
         session.close()
         print('Fall session')
 
-        return list_preparaty
+        is_save = save_search_results(query,list_preparaty, session_key)
+
+        return len(is_save), None
 
     except Exception as e:
         print(f"Помилка Перша соціальна аптека: {e}")
         time.sleep(10)  # Довша пауза при помилці
-        return None
+        return None, None
 
 
-def get_count_pages(soup):
+def get_count_pages(html):
+    soup = BeautifulSoup(html, "html.parser")
+
     # отримати кількість сторінок
     pages_count = soup.select_one("li.items-count strong.page")
 
@@ -107,7 +114,24 @@ def get_count_pages(soup):
         return 1
 
 
-def get_data_html_page(soup):
+def get_data_html_page(html):
+    soup = BeautifulSoup(html, "html.parser")
+    products = get_data_with_script(soup)
+
+    if not products:
+        return None
+
+    alias_and_images_by_code = get_alias_and_images_by_code(html)
+
+    for product in products:
+        product_code = str(product.get('id', '')).strip()
+        product['image'] = alias_and_images_by_code.get(product_code, '').get('image', '')
+        product['alias'] = alias_and_images_by_code.get(product_code, '').get('alias', '')
+
+    return products
+
+
+def get_data_with_script(soup):
     """ отримання json-даних зі скрипта на html-сторнці"""
 
     target_script = None
@@ -133,7 +157,6 @@ def get_data_html_page(soup):
             if not text.endswith(']'):
                 text += '}]'
 
-            # match = re.search(r'\[.*\]', text, re.DOTALL)
             match = re.search(r'\[.*\]', text, re.DOTALL)
 
             if not match:
@@ -149,3 +172,36 @@ def get_data_html_page(soup):
         print(f"Помилка get_data_html_page 1sa: {e}")
         time.sleep(10)  # Довша пауза при помилці
         return None
+
+
+def save_search_results(query, results, session_key):
+    """
+    Зберігає результати пошуку в БД
+    """
+    # Видалити дані, що існують більше 2 годин
+    SearchResult.objects.filter(
+        created_at__lt=timezone.now() - timedelta(hours=2)
+    ).delete()
+
+    objects = []
+
+    for drug in results:
+        objects.append(
+            SearchResult(
+                query=query,
+                name=drug['name'],
+                nameNormalized=drug['name'].casefold(),
+                session_key=session_key,
+                product_id=drug['id'],
+                pharmacy='1 соціальна аптека',
+                price=drug['price'],
+                alias= drug['alias'],# f'https://www.add.ua/ua/catalogsearch/result/?q={drug["name"]}',
+                brand=drug.get('brand', '') if drug.get('brand') else '',
+                image_url=drug.get('image', ''),
+                stock_status=(
+                    SearchResult.StockStatus.UNKNOWN
+                ),
+            )
+        )
+
+    return SearchResult.objects.bulk_create(objects)
