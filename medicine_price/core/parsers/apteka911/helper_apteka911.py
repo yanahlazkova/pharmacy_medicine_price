@@ -367,7 +367,7 @@ def search_preparaty(request, query, session_key):
     url = f"https://apteka911.ua/ua/shop/search?query={quote(query)}"
 
     try:
-        response = session.get(url, headers=session.headers, timeout=5)
+        response = session.get(url, headers=session.headers, timeout=15)
         response.raise_for_status()
         html = response.text
         # отримаємо кількість сторінок
@@ -381,10 +381,9 @@ def search_preparaty(request, query, session_key):
 
         while page < total_pages:
             page += 1
-            print(f'page: {page}')
             url = f"https://apteka911.ua/ua/shop/search/page={page}?query={quote(query)}"
 
-            response = session.get(url, headers=session.headers, timeout=10)
+            response = session.get(url, headers=session.headers, timeout=15)
             response.raise_for_status()
             html = response.text
 
@@ -518,7 +517,9 @@ def get_product_images_by_alias(html):
             continue
 
         alias = link.get('href')
-        image = card.select_one('picture > img')
+        # image = card.select_one('picture > img')
+        image = card.select_one('img[src]')
+        print(f'alias: {alias}, image: {image}')
 
         images_by_alias[alias] = image.get('src') if image else ""
 
