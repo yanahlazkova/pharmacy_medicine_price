@@ -183,14 +183,15 @@ class FilterByFoundView(HTMXTemplateMixin, ListView):
 
     list_filter = []
 
-    # def post(self, request, *args, **kwargs):
-    #     # HTMX відправляє POST, але ListView працює через GET.
-    #     # Ми кажемо Django: "Оброби цей POST як звичайний запит списку"
-    #     return self.get(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        # HTMX відправляє POST, але ListView працює через GET.
+        # Ми кажемо Django: "Оброби цей POST як звичайний запит списку"
+        return self.get(request, *args, **kwargs)
 
     def get_queryset(self):
         print(f'method: {self.request.method}')
-        filter = self.request.POST.getlist('filter_query')
+        filter = self.request.POST.get('filter_query').casefold()
+        print(f'filter: {filter}')
         self.list_filter.append(filter)
 
         # ключ сесії
@@ -198,9 +199,8 @@ class FilterByFoundView(HTMXTemplateMixin, ListView):
             self.request.session.create()
 
         session_key = self.request.session.session_key
-        return SearchResult.objects.filter(session_key=session_key, nameNormalized__icontains=filter).order_by('name',
+        return  SearchResult.objects.filter(session_key=session_key, nameNormalized__icontains=filter).order_by('name',
                                                                                                                'price')
-
     def get_page_content(self):
         return list(self.page_content)
 
