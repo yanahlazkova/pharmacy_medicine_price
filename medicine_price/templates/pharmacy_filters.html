@@ -1,0 +1,21 @@
+<div id="pharmacy-filters" hx-swap-oob="true">
+    {% for key, pharm in pharmacy.items %}
+    <div class="form-check">
+        <input class="form-check-input"
+               type="checkbox"
+               name="pharmacies"
+               value="{{ key }}"
+               id="{{ key }}"
+               checked>
+
+        <label class="form-check-label text-info" for="{{ key }}">
+            {{ pharm.name }}
+            {% if pharm.count %}
+            <span class="text-secondary">
+                ({{ pharm.count }} шт.)
+            </span>
+            {% endif %}
+        </label>
+    </div>
+    {% endfor %}
+</div>

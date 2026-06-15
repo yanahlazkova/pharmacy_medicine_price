@@ -519,7 +519,7 @@ def get_product_images_by_alias(html):
         alias = link.get('href')
         # image = card.select_one('picture > img')
         image = card.select_one('img[src]')
-        print(f'alias: {alias}, image: {image}')
+        # print(f'alias: {alias}, image: {image}')
 
         images_by_alias[alias] = image.get('src') if image else ""
 
