@@ -88,7 +88,7 @@ def search_preparaty(request, query, session_key):
     except Exception as e:
         print(f"Помилка Аптека доброго дня: {e}")
         time.sleep(10)  # Довша пауза при помилці
-    return None
+    return None, None
 
 
 # не використовується
