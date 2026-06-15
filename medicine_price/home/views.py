@@ -31,6 +31,7 @@ LIST_PHARMACY = {
     },
 }
 
+
 class HomePageView(HTMXTemplateMixin, ListView):
     page_content: tuple[str] = ('home.html',)
     page_title = 'Порівнюй ціни - обирай найкраще'
@@ -61,8 +62,8 @@ class HomePageView(HTMXTemplateMixin, ListView):
             'page_content': self.get_page_content(),
             'table': {
                 'table_content': ctx['object_list'],
-                }
-            })
+            }
+        })
 
         return ctx
 
@@ -172,6 +173,49 @@ class SearchView(HTMXTemplateMixin, ListView):
                 'name': f'Пошук ліків за "{self.query}"',
                 'table_content': ctx['object_list'],
             }
+        })
+
+        return ctx
+
+
+class FilterByFoundView(HTMXTemplateMixin, ListView):
+    page_content = ('block_filter.html', 'block_table.html',)
+
+    list_filter = []
+
+    # def post(self, request, *args, **kwargs):
+    #     # HTMX відправляє POST, але ListView працює через GET.
+    #     # Ми кажемо Django: "Оброби цей POST як звичайний запит списку"
+    #     return self.get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        print(f'method: {self.request.method}')
+        filter = self.request.POST.getlist('filter_query')
+        self.list_filter.append(filter)
+
+        # ключ сесії
+        if not self.request.session.session_key:
+            self.request.session.create()
+
+        session_key = self.request.session.session_key
+        return SearchResult.objects.filter(session_key=session_key, nameNormalized__icontains=filter).order_by('name',
+                                                                                                               'price')
+
+    def get_page_content(self):
+        return list(self.page_content)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        ctx.update({
+            'form_search': 'search',
+            'page_content': self.get_page_content(),
+            'filter': self.list_filter,
+            'table': {
+                # 'name': f'Пошук ліків за "{self.query}"',
+                'table_content': ctx['object_list'],
+            }
+
         })
 
         return ctx
