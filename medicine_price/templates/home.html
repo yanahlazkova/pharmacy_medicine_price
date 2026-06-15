@@ -4,10 +4,10 @@
 <div class="container mt-4">
     <div class="card shadow">
         <div class="card-body">
-            <form method="post"
-                  hx-post="{{ form_action_url }}"
-                  hx-target="#search-content"
-                  hx-swap="innerHTML">
+            <form role="filter"
+                    hx-post="{% url 'home:filter' %}"
+                    hx-target="#search-content"
+                    hx-swap="innerHTML">
 
                 {% csrf_token %}
 
@@ -16,55 +16,47 @@
                     <div class="col-auto">
                         <label for="inputSearch" class="visually-hidden">Пошук за категоріями: </label>
                         <input type="text"
-                               name="search_query"
+                               name="filter_query"
                                class="form-control border-info"
                                id="inputSearch"
                                placeholder="Оберіть назву в таблиці..."
-                               value="{{ word_search|default:'' }}"
-                               disabled
+                               value="{{ word_filter|default:'' }}"
                         >
                     </div>
 
                     <div class="col-auto">
-                        {% if word_search %}
                         <button type="submit" class="btn btn-primary mb-3">Знайти</button>
+                        <!--{% if word_search %}
                         {% else %}
                         <button type="submit" class="btn btn-light mb-3" disabled>Знайти</button>
-                        {% endif %}
+                        {% endif %}-->
+                        <div class="text-secondary" id="filter_found">
+                            {% for word in filter %}
+                            {{ word }} /
+                            {% endfor %}
+                        </div>
 
                     </div>
-                </div>
-
-                <div class="mb-2">
-    <button type="button"
-            class="btn btn-sm btn-outline-info bi bi-check-all"
-            onclick="selectAllPharmacies()">
-        <!-- Вибрати всі -->
-    </button>
-
-    <button type="button"
-            class="btn btn-sm btn-outline-secondary bi bi-dash"
-            onclick="clearAllPharmacies()">
-        <!-- Зняти всі -->
-    </button>
-</div>
-
-                <div id="pharmacy-filters">
-                    {% for key, pharm in pharmacy.items %}
-                    <div class="form-check">
-                        <input class="form-check-input"
-                               type="checkbox"
-                               name="pharmacies"
-                               value="{{ key }}"
-                               id="{{ key }}"
-                               checked>
-                        <label class="form-check-label text-info" for="{{ key }}">
-                            {{ pharm.name }}
-                        </label>
-                    </div>
-                    {% endfor %}
                 </div>
             </form>
+
+            <div class="mb-2">
+                <button type="button"
+                        class="btn btn-sm btn-outline-info bi bi-check-all"
+                        onclick="selectAllPharmacies()">
+                    <!-- Вибрати всі -->
+                </button>
+
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary bi bi-dash"
+                        onclick="clearAllPharmacies()">
+                    <!-- Зняти всі -->
+                </button>
+            </div>
+
+            <div id="pharmacy-filters">
+                {% include "pharmacy_filters.html" %}
+            </div>
         </div>
     </div>
 </div>
@@ -80,15 +72,15 @@
 </div>
 
 <script>
-function selectAllPharmacies() {
-    document
-        .querySelectorAll('#pharmacy-filters input[name="pharmacies"]')
-        .forEach(checkbox => checkbox.checked = true);
-}
+    function selectAllPharmacies() {
+        document
+            .querySelectorAll('#pharmacy-filters input[name="pharmacies"]')
+            .forEach(checkbox => checkbox.checked = true);
+    }
 
-function clearAllPharmacies() {
-    document
-        .querySelectorAll('#pharmacy-filters input[name="pharmacies"]')
-        .forEach(checkbox => checkbox.checked = false);
-}
+    function clearAllPharmacies() {
+        document
+            .querySelectorAll('#pharmacy-filters input[name="pharmacies"]')
+            .forEach(checkbox => checkbox.checked = false);
+    }
 </script>

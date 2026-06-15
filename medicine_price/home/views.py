@@ -31,6 +31,7 @@ LIST_PHARMACY = {
     },
 }
 
+
 class HomePageView(HTMXTemplateMixin, ListView):
     page_content: tuple[str] = ('home.html',)
     page_title = 'Порівнюй ціни - обирай найкраще'
@@ -61,8 +62,8 @@ class HomePageView(HTMXTemplateMixin, ListView):
             'page_content': self.get_page_content(),
             'table': {
                 'table_content': ctx['object_list'],
-                }
-            })
+            }
+        })
 
         return ctx
 
@@ -71,11 +72,14 @@ class SearchView(HTMXTemplateMixin, ListView):
     # template_name = "base_page.html"
     # htmx_template_name = "htmx_page.html"
 
-    page_content = ('block_table.html',)
+    page_content = ('pharmacy_filters.html', 'block_table.html',)
 
     # context_object_name = 'search_preparaty'
 
     query = None
+
+    # кількість знайдених препаратів по аптекам
+    number_found = None
 
     def post(self, request, *args, **kwargs):
         # HTMX відправляє POST, але ListView працює через GET.
@@ -83,6 +87,7 @@ class SearchView(HTMXTemplateMixin, ListView):
         return self.get(request, *args, **kwargs)
 
     def get_queryset(self):
+        self.number_found = {}
 
         self.query = (
                 self.request.GET.get('q')
@@ -111,7 +116,7 @@ class SearchView(HTMXTemplateMixin, ListView):
                     SearchResult.objects.filter(
                         session_key=self.request.session.session_key
                     ).delete()
-                # count_drugs_1sa = apteka1sa.search_preparaty(self.query, session_key)
+
                 for pharmacy in selected_pharmacies:
                     search_func = LIST_PHARMACY.get(pharmacy).get('function')
                     if search_func:
@@ -119,6 +124,7 @@ class SearchView(HTMXTemplateMixin, ListView):
                         if error:
                             print(f'error: {error}')
                         else:
+                            self.number_found[pharmacy] = count_drugs
                             print(f'Знайдено {count_drugs} препаратів в {LIST_PHARMACY.get(pharmacy).get('name')}')
 
                     else:
@@ -147,17 +153,69 @@ class SearchView(HTMXTemplateMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
+        pharmacy_data = {}
+
+        for key, pharm in LIST_PHARMACY.items():
+            pharmacy_data[key] = {
+                "name": pharm["name"],
+                "function": pharm["function"],
+                "count": self.number_found.get(key, 0),
+            }
+
         ctx.update({
             'form_search': 'search',
             'page_title': 'Результати пошуку',
             'query': self.query,
-            'pharmacy': LIST_PHARMACY,
+            'pharmacy': pharmacy_data,
             'page_content': self.get_page_content(),
-
+            'number_found': self.number_found,
             'table': {
                 'name': f'Пошук ліків за "{self.query}"',
                 'table_content': ctx['object_list'],
             }
+        })
+
+        return ctx
+
+
+class FilterByFoundView(HTMXTemplateMixin, ListView):
+    page_content = ('block_filter.html', 'block_table.html',)
+
+    list_filter = []
+
+    # def post(self, request, *args, **kwargs):
+    #     # HTMX відправляє POST, але ListView працює через GET.
+    #     # Ми кажемо Django: "Оброби цей POST як звичайний запит списку"
+    #     return self.get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        print(f'method: {self.request.method}')
+        filter = self.request.POST.getlist('filter_query')
+        self.list_filter.append(filter)
+
+        # ключ сесії
+        if not self.request.session.session_key:
+            self.request.session.create()
+
+        session_key = self.request.session.session_key
+        return SearchResult.objects.filter(session_key=session_key, nameNormalized__icontains=filter).order_by('name',
+                                                                                                               'price')
+
+    def get_page_content(self):
+        return list(self.page_content)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        ctx.update({
+            'form_search': 'search',
+            'page_content': self.get_page_content(),
+            'filter': self.list_filter,
+            'table': {
+                # 'name': f'Пошук ліків за "{self.query}"',
+                'table_content': ctx['object_list'],
+            }
+
         })
 
         return ctx
