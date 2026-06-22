@@ -76,15 +76,14 @@ def search_preparaty(request, query, session_key):
         while page < total_pages:
             page += 1
             url = f'https://1sa.com.ua/catalogsearch/result/index/?p={page}&q={quote(query)}'
-            # url = f"https://1sa.com.ua/ua/catalogsearch/result/index/?p={page}&q={quote(query)}"
 
-            response = session.get(url, timeout=30)
+            response = session.get(url, timeout=15)
             response.raise_for_status()
             html = response.text
 
-            soup = BeautifulSoup(html, "html.parser")
+            # soup = BeautifulSoup(html, "html.parser")
 
-            data = get_data_html_page(soup)
+            data = get_data_html_page(html)
             list_preparaty.extend(drug for drug in data if query.casefold() in drug['name'].casefold())
 
         session.close()
