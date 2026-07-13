@@ -379,28 +379,29 @@ def search_preparaty(request, query, session_key):
 
         list_search_preparaty.extend(drug for drug in data)
 
-        while page < total_pages:
-            page += 1
-            url = f"https://apteka911.ua/ua/shop/search/page={page}?query={quote(query)}"
-
-            response = session.get(url, headers=session.headers, timeout=15)
-            response.raise_for_status()
-            html = response.text
-
-            data = get_data_html_page(html)
-            list_search_preparaty.extend(drug for drug in data)
+        # пошук даних з інших сторінок
+        # while page < total_pages:
+        #     page += 1
+        #     url = f"https://apteka911.ua/ua/shop/search/page={page}?query={quote(query)}"
+        #
+        #     response = session.get(url, headers=session.headers, timeout=15)
+        #     response.raise_for_status()
+        #     html = response.text
+        #
+        #     data = get_data_html_page(html)
+        #     list_search_preparaty.extend(drug for drug in data)
 
         session.close()
         print('Fall session')
 
-        # for drug in list_search_preparaty:
-        #     list_preparaty.append(create_obj_model_drug_apteka911(drug))
+            # for drug in list_search_preparaty:
+            #     list_preparaty.append(create_obj_model_drug_apteka911(drug))
 
-        # save_drugs_to_db(list_preparaty, query)
+            # save_drugs_to_db(list_preparaty, query)
 
-        # res = get_list_dict(list_search_preparaty)
-        #
-        # return res if res else None
+            # res = get_list_dict(list_search_preparaty)
+            #
+            # return res if res else None
 
         # зберегти в таблицю пошуку БД
         is_save = save_search_results(query, list_search_preparaty, session_key)
