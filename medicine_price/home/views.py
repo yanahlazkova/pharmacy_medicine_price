@@ -21,10 +21,10 @@ LIST_PHARMACY = {
         'name': 'Аптека 911',
         'function': apteka911.search_preparaty,
     },
-    'add': {
-        'name': 'Аптека доброго дня',
-        'function': apteka_dobrogo_dnia.search_preparaty,
-    },
+    # 'add': {
+    #     'name': 'Аптека доброго дня',
+    #     'function': apteka_dobrogo_dnia.search_preparaty,
+    # },
     '1sa': {
         'name': 'Перша соціальна аптека',
         'function': apteka1sa.search_preparaty,
