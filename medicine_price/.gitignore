@@ -1,4 +1,5 @@
-.idea/
+../.idea/
+.vscode/
 # Виключити віртуальне середовище
 venv/
 env/
@@ -6,12 +7,14 @@ env/
 
 # Django та Python службові файли
 __pycache__/
+*.py[cod]
 *.pyc
 *.log
 *.sqlite3 # База даних SQLite
-db.sqlite3
+medicine_price/db.sqlite3
 
 # Секретні файли (КРИТИЧНО ВАЖЛИВО)
+.env
 *.env
 .vscode/
 
