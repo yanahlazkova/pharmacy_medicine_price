@@ -5,6 +5,7 @@ import json
 import requests
 import random
 
+from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 
@@ -357,10 +358,16 @@ def save_filters_to_db(query, filters, session_key):
     """
         Зберігає фільтри в БД
     """
+    # очистити таблицю перед новим пошуком
+    with transaction.atomic():
+        Filters.objects.filter(
+            query=query,
+            session_key=session_key
+        ).delete()
 
-    Filters.objects.filter(
-        created_at__lt=timezone.now() - timedelta(hours=2)
-    ).delete()
+        Filters.objects.filter(
+            created_at__lt=timezone.now() - timedelta(hours=2)
+        ).delete()
 
     objects = []
 
@@ -570,7 +577,7 @@ def get_filters(html):
             print("Дані успішно отримано:")
 
             data_filters = json_data['ffields']
-            print(json_data['ffields'])  # Тут буде чистий Python-словник з вашими фільтрами
+            # print(json_data['ffields'])  # Тут буде чистий Python-словник з вашими фільтрами
 
             for data in data_filters.values():
                 if data['fieldName'] in base_filters:

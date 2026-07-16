@@ -11,16 +11,17 @@ from fake_useragent import UserAgent
 from urllib.parse import quote, urljoin
 
 from core.parsers.apteka_dobrogo_dnya.helper_add import get_product_code, get_product_url, get_alias_and_images_by_code
+from core.parsers.helper_parser import get_user_agent
 from home.models import SearchResult
 
 
 def create_session():
-    ua = UserAgent()
+    ua = get_user_agent()
     session = requests.Session()
     print('Start session 1sa')
 
     session.headers.update({
-        'User-Agent': ua.random,
+        'User-Agent': ua,
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
         'accept-language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
         # Це заголовок каже: Я AJAX-запит, дай мені JSON”.

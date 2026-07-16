@@ -1,3 +1,4 @@
+from collections import defaultdict
 from random import choice
 
 from django.db import transaction
@@ -11,7 +12,7 @@ from core.parsers.apteka911 import helper_apteka911 as apteka911
 from core.parsers.apteka1sa import helper_1sa as apteka1sa
 
 from core.parsers.apteka_dobrogo_dnya import helper_add as apteka_dobrogo_dnia
-from home.models import SearchResult
+from home.models import SearchResult, Filters
 
 from pharmacies.mixins.htmx import HTMXTemplateMixin
 from pharmacies.models import DrugApteka911
@@ -47,6 +48,8 @@ class HomePageView(HTMXTemplateMixin, ListView):
         session_key = self.request.session.session_key
 
         list_search = SearchResult.objects.filter(session_key=session_key).order_by('name', 'price')
+        list_filters = Filters.objects.filter(session_key=session_key)
+
         return list_search
 
     def get_page_content(self):
@@ -72,7 +75,7 @@ class SearchView(HTMXTemplateMixin, ListView):
     # template_name = "base_page.html"
     # htmx_template_name = "htmx_page.html"
 
-    page_content = ('pharmacy_filters.html', 'block_table.html',)
+    page_content = ('pharmacy_filters.html', 'block_table.html', 'filter_panel.html',)
 
     # context_object_name = 'search_preparaty'
 
@@ -100,6 +103,7 @@ class SearchView(HTMXTemplateMixin, ListView):
             self.request.session.create()
 
         session_key = self.request.session.session_key
+        print(f'session_key: {session_key}')
 
         print('GET:', self.request.GET)
         print('POST:', self.request.POST)
@@ -147,6 +151,19 @@ class SearchView(HTMXTemplateMixin, ListView):
 
         return []
 
+    def get_list_filters(self):
+        # ключ сесії
+        session_key = self.request.session.session_key
+
+        filters = Filters.objects.filter(session_key=session_key, query=self.query).values("filter_name", "filter_value")
+        filters_dict = defaultdict(list)
+        for item in filters:
+            filters_dict[item["filter_name"]].append(item["filter_value"])
+
+        filters_dict = dict(filters_dict)
+
+        return filters_dict
+
     def get_page_content(self):
         return list(self.page_content)
 
@@ -162,10 +179,13 @@ class SearchView(HTMXTemplateMixin, ListView):
                 "count": self.number_found.get(key, 0),
             }
 
+        filters = self.get_list_filters()
+
         ctx.update({
             'form_search': 'search',
             'page_title': 'Результати пошуку',
             'query': self.query,
+            'filters': filters,
             'pharmacy': pharmacy_data,
             'page_content': self.get_page_content(),
             'number_found': self.number_found,

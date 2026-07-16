@@ -124,6 +124,13 @@ class Filters(models.Model):
         db_index=True
     )
 
+    # аптека
+    pharmacy = models.CharField(
+        max_length=100,
+        db_index=True,
+        verbose_name="Аптека"
+    )
+
     # назва фільтра
     filter_name = models.CharField(
         max_length=500,

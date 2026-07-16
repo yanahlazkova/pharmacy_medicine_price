@@ -1,86 +1,113 @@
 {% load static %}
 
 <h2 class="mb-4 text-info text-center">{{ page_title }}</h2>
-<div class="container mt-4">
-    <div class="card shadow">
-        <div class="card-body">
-            <form role="filter"
-                    hx-post="{% url 'home:filter' %}"
-                    hx-target="#search-content"
-                    hx-swap="innerHTML">
+<div class="container-fluid mt-4">
+    <div class="row">
 
-                {% csrf_token %}
+        <!-- Ліва колонка -->
+        <aside class="col-lg-3">
 
-                <div class="row mb-3">
+            <div class="card shadow sticky-top" style="top: 1rem;">
+                <div class="card-header">
+                    <h5 class="mb-0">Фільтри</h5>
+                </div>
 
-                    <div class="col-auto">
-                        <label for="inputSearch" class="visually-hidden">Пошук за категоріями: </label>
-                        <input type="text"
-                               name="filter_query"
-                               class="form-control border-info"
-                               id="inputSearch"
-                               placeholder="Оберіть назву в таблиці..."
-                               value="{{ word_filter|default:'' }}"
-                        >
+                <div class="card-body">
+                    <div id="filters">
+                   {% include "filter_panel.html" %}
                     </div>
 
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-primary mb-3">Знайти</button>
-                        <!--{% if word_search %}
-                        {% else %}
-                        <button type="submit" class="btn btn-light mb-3" disabled>Знайти</button>
-                        {% endif %}-->
-                        <div class="text-secondary" id="filter_found">
-                            {% for word in filter %}
-                            {{ word }} /
-                            {% endfor %}
-                        </div>
+                </div>
+            </div>
 
+        </aside>
+
+
+        <!-- Права колонка -->
+        <div class="col-lg-9">
+
+            <!-- Пошук за вибраним препаратом з таблиці -->
+            <div class="card shadow mb-3">
+                <div class="card-body">
+                    <form role="filter"
+                          hx-post="{% url 'home:filter' %}"
+                          hx-target="#search-content"
+                          hx-swap="innerHTML">
+
+                        {% csrf_token %}
+
+                        <div class="row mb-3">
+
+                            <div class="col-auto">
+                                <label for="inputSearch" class="visually-hidden">Пошук за категоріями: </label>
+                                <input type="text"
+                                       name="filter_query"
+                                       class="form-control border-info"
+                                       id="inputSearch"
+                                       placeholder="Оберіть назву в таблиці..."
+                                       value="{{ word_filter|default:'' }}"
+                                >
+                            </div>
+
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary mb-3">Знайти</button>
+                                <div class="text-secondary" id="filter_found">
+                                    {% for word in filter %}
+                                    {{ word }} /
+                                    {% endfor %}
+                                </div>
+
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Аптеки -->
+            <div class="card shadow mb-3">
+                <div class="card-body">
+                    <div class="mb-2">
+                        <button type="button"
+                                class="btn btn-sm btn-outline-info bi bi-check-all"
+                                onclick="selectAllPharmacies()">
+                            <!-- Вибрати всі -->
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary bi bi-dash"
+                                onclick="clearAllPharmacies()">
+                            <!-- Зняти всі -->
+                        </button>
+                    </div>
+
+                    <div id="pharmacy-filters">
+                        {% include "pharmacy_filters.html" %}
                     </div>
                 </div>
-            </form>
-
-            <div class="mb-2">
-                <button type="button"
-                        class="btn btn-sm btn-outline-info bi bi-check-all"
-                        onclick="selectAllPharmacies()">
-                    <!-- Вибрати всі -->
-                </button>
-
-                <button type="button"
-                        class="btn btn-sm btn-outline-secondary bi bi-dash"
-                        onclick="clearAllPharmacies()">
-                    <!-- Зняти всі -->
-                </button>
             </div>
 
-            <div id="pharmacy-filters">
-                {% include "pharmacy_filters.html" %}
+            <!-- Таблиця -->
+            <div class="search-content" id="search-content">
+                <div class="container mt-4">
+                    <div class="card shadow">
+                        <div class="card-body">
+                            {% include 'block_table.html' %}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
-<div class="search-content" id="search-content">
-    <div class="container mt-4">
-        <div class="card shadow">
-            <div class="card-body">
-                {% include 'block_table.html' %}
-            </div>
-        </div>
-    </div>
-</div>
+        <script>
+            function selectAllPharmacies() {
+                document
+                    .querySelectorAll('#pharmacy-filters input[name="pharmacies"]')
+                    .forEach(checkbox => checkbox.checked = true);
+            }
 
-<script>
-    function selectAllPharmacies() {
-        document
-            .querySelectorAll('#pharmacy-filters input[name="pharmacies"]')
-            .forEach(checkbox => checkbox.checked = true);
-    }
-
-    function clearAllPharmacies() {
-        document
-            .querySelectorAll('#pharmacy-filters input[name="pharmacies"]')
-            .forEach(checkbox => checkbox.checked = false);
-    }
-</script>
+            function clearAllPharmacies() {
+                document
+                    .querySelectorAll('#pharmacy-filters input[name="pharmacies"]')
+                    .forEach(checkbox => checkbox.checked = false);
+            }
+        </script>
