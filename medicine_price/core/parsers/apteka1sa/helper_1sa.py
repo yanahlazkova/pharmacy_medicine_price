@@ -67,6 +67,9 @@ def search_preparaty(request, query, session_key):
         # отримаємо кількість сторінок
         total_pages = get_count_pages(html)
 
+        # отримаємо фільтри
+        filters = get_filters(html)
+
         data = get_data_html_page(html)
 
         if not data:
@@ -114,6 +117,45 @@ def get_count_pages(html):
     except ValueError:
         return 1
 
+
+def get_filters(html):
+    soup = BeautifulSoup(html, "html.parser")
+
+    base_filters = ['Дозування', 'Форма товару', 'Кількість в упаковці']
+
+    print("форма:", "Форма товару" in soup.get_text())
+    print("дозування:", "Дозування" in soup.get_text())
+    print("Кількість в упаковці:", "Кількість в упаковці" in soup.get_text())
+
+    filters = {}
+
+    # всі блоки фільтрів
+    blocks_filter = soup.select("div.filter-options-item")
+
+
+    for block in blocks_filter:
+
+        # назва фільтра
+        title = block.select_one("div.filter-options-title")
+        if not title:
+            continue
+
+
+        filter_name = title.get_text(" ", strip=True) #.replace("Категорія", "Категорія").strip()
+
+        if filter_name not in base_filters:
+            continue
+
+        values = []
+
+        for item in block.select("span.label-name"):
+            text = item.find(string=True, recursive=False)
+            if text:
+                values.append(text.strip())
+
+        filters[filter_name] = values
+
+    return filters
 
 def get_data_html_page(html):
     soup = BeautifulSoup(html, "html.parser")
