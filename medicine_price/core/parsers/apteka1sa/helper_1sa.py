@@ -11,16 +11,17 @@ from fake_useragent import UserAgent
 from urllib.parse import quote, urljoin
 
 from core.parsers.apteka_dobrogo_dnya.helper_add import get_product_code, get_product_url, get_alias_and_images_by_code
+from core.parsers.helper_parser import get_user_agent
 from home.models import SearchResult
 
 
 def create_session():
-    ua = UserAgent()
+    ua = get_user_agent()
     session = requests.Session()
     print('Start session 1sa')
 
     session.headers.update({
-        'User-Agent': ua.random,
+        'User-Agent': ua,
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
         'accept-language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7',
         # Це заголовок каже: Я AJAX-запит, дай мені JSON”.
@@ -65,6 +66,9 @@ def search_preparaty(request, query, session_key):
 
         # отримаємо кількість сторінок
         total_pages = get_count_pages(html)
+
+        # отримаємо фільтри
+        filters = get_filters(html)
 
         data = get_data_html_page(html)
 
@@ -113,6 +117,45 @@ def get_count_pages(html):
     except ValueError:
         return 1
 
+
+def get_filters(html):
+    soup = BeautifulSoup(html, "html.parser")
+
+    base_filters = ['Дозування', 'Форма товару', 'Кількість в упаковці']
+
+    print("форма:", "Форма товару" in soup.get_text())
+    print("дозування:", "Дозування" in soup.get_text())
+    print("Кількість в упаковці:", "Кількість в упаковці" in soup.get_text())
+
+    filters = {}
+
+    # всі блоки фільтрів
+    blocks_filter = soup.select("div.filter-options-item")
+
+
+    for block in blocks_filter:
+
+        # назва фільтра
+        title = block.select_one("div.filter-options-title")
+        if not title:
+            continue
+
+
+        filter_name = title.get_text(" ", strip=True) #.replace("Категорія", "Категорія").strip()
+
+        if filter_name not in base_filters:
+            continue
+
+        values = []
+
+        for item in block.select("span.label-name"):
+            text = item.find(string=True, recursive=False)
+            if text:
+                values.append(text.strip())
+
+        filters[filter_name] = values
+
+    return filters
 
 def get_data_html_page(html):
     soup = BeautifulSoup(html, "html.parser")

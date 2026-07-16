@@ -7,6 +7,7 @@ def get_user_agent():
 
     while True:
         user_agent = ua.random
+        print(user_agent)
 
         if not any(x in user_agent for x in ("Android", "iPhone", "iPad", "Mobile")):
             return user_agent

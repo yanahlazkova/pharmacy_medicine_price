@@ -5,6 +5,7 @@ import json
 import requests
 import random
 
+from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 
@@ -357,10 +358,16 @@ def save_filters_to_db(query, filters, session_key):
     """
         Зберігає фільтри в БД
     """
+    # очистити таблицю перед новим пошуком
+    with transaction.atomic():
+        Filters.objects.filter(
+            query=query,
+            session_key=session_key
+        ).delete()
 
-    Filters.objects.filter(
-        created_at__lt=timezone.now() - timedelta(hours=2)
-    ).delete()
+        Filters.objects.filter(
+            created_at__lt=timezone.now() - timedelta(hours=2)
+        ).delete()
 
     objects = []
 
@@ -372,8 +379,8 @@ def save_filters_to_db(query, filters, session_key):
                     session_key=session_key,
                     pharmacy='apteka911',
                     filter_name=filter_name,
-                    filter_value=value,
-                    nameNormalized=value.casefold(),
+                    filter_value=str(value),
+                    nameNormalized=str(value).casefold(),
                 )
             )
 
@@ -551,7 +558,7 @@ def get_filters(html):
     """
         отримання фільтрів
     """
-    base_filters = ['Дозування', 'Форма випуску', 'Об\'єм', 'Первинна упаковка']
+    base_filters = ['Дозування', 'Форма випуску', 'Об\'єм', 'Первинна упаковка', 'Кількість в упаковці']
     filters = {}
 
     # Шукаємо початок потрібних даних
@@ -570,7 +577,7 @@ def get_filters(html):
             print("Дані успішно отримано:")
 
             data_filters = json_data['ffields']
-            print(json_data['ffields'])  # Тут буде чистий Python-словник з вашими фільтрами
+            # print(json_data['ffields'])  # Тут буде чистий Python-словник з вашими фільтрами
 
             for data in data_filters.values():
                 if data['fieldName'] in base_filters:
@@ -585,49 +592,6 @@ def get_filters(html):
             print(f"Помилка парсингу (можливо, дані занадто сильно обірвані): {e}")
     return None
 
-    # soup = BeautifulSoup(html, "html.parser")
-    #
-    # base_filters = ['Дозування', 'Форма випуску', 'Об\'єм', 'Первинна упаковка']
-    #
-    # print("форма:", "Форма випуску" in soup.get_text())
-    # print("дозування:", "Дозування" in soup.get_text())
-    # print("об'єм:", "Об'єм" in soup.get_text())
-    #
-    # filters = {}
-    #
-    #
-    #
-    # # всі блоки фільтрів
-    # blocks_filter = soup.select("div.bg_filter")
-    #
-    #
-    # for block in blocks_filter:
-    #
-    #     # назва фільтра
-    #     title = block.select_one("a.filter-aside__head")
-    #     if not title:
-    #         continue
-    #
-    #
-    #     filter_name = title.get_text(" ", strip=True) #.replace("Категорія", "Категорія").strip()
-    #
-    #     if filter_name not in base_filters:
-    #         continue
-    #
-    #     values = []
-    #
-    #     for item in block.select("div.filter-aside__dropdown li"):
-    #         text = item.get_text(" ", strip=True)
-    #
-    #         # прибрати кількість "(33)"
-    #         if "(" in text:
-    #             text = text.rsplit("(", 1)[0].strip()
-    #
-    #         values.append(text)
-    #
-    #     filters[filter_name] = values
-    #
-    # return filters
 
 def get_data_html_page(html):
     try:

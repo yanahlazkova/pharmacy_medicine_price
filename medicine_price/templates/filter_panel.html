@@ -1,0 +1,10 @@
+<div id="filters" hx-swap-oob="true">
+    {% for key, filter in filters.items %}
+    <p>{{ key }}</p>
+        <ol>
+        {% for value in filter %}
+            <li>{{ value }}</li>
+        {% endfor %}
+        </ol>
+    {% endfor %}
+</div>
