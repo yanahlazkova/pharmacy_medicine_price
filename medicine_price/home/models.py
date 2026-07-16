@@ -21,6 +21,7 @@ class SearchResult(models.Model):
         db_index=True
     )
 
+    # номер сторінки
     # назва препарату
     name = models.CharField(
         max_length=500,
@@ -107,3 +108,51 @@ class SearchResult(models.Model):
 
     def __str__(self):
         return f"{self.name} | {self.pharmacy} | {self.price}"
+
+
+class Filters(models.Model):
+    # що шукали
+    query = models.CharField(
+        max_length=255,
+        db_index=True,
+        verbose_name="Пошуковий запит"
+    )
+
+    # ключ сесії, щоб користувачі бачили тільки свої результати пошуку
+    session_key = models.CharField(
+        max_length=40,
+        db_index=True
+    )
+
+    # назва фільтра
+    filter_name = models.CharField(
+        max_length=500,
+        db_index=True,
+        verbose_name="Фільтр"
+    )
+
+    # значення фільтра
+    filter_value = models.CharField(
+        max_length=500,
+        db_index=True,
+        verbose_name="Значення фільтра"
+    )
+
+    # назва фільтра для пошуку
+    nameNormalized = models.CharField(
+        max_length=500,
+        db_index=True,
+    )
+
+    # дата створення
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True
+    )
+
+    class Meta:
+        verbose_name = "Фільтр пошуку"
+        verbose_name_plural = "Фільтри пошуку"
+
+    def __str__(self):
+        return f"{self.filter_name}: {self.filter_value}"

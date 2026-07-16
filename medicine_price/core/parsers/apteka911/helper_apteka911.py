@@ -13,8 +13,8 @@ from django.db.models.functions import Lower
 from fake_useragent import UserAgent
 from urllib.parse import urljoin, quote
 
-from core.parsers.helper_parser import LIST_PREPARATY
-from home.models import SearchResult
+from core.parsers.helper_parser import get_user_agent #, LIST_PREPARATY
+from home.models import SearchResult, Filters
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
 SEEN_URLS = set()  # для збору url категорій
@@ -28,11 +28,11 @@ BATCH_TO_UPDATE: list[dict] = []  # партія/пакет для оновле�
 
 
 def get_categories_apteka911():
-    ua = UserAgent()
+    ua = get_user_agent()
     session = requests.Session()
     url = 'https://apteka911.ua/ua'
 
-    response = session.get(url, headers={"User-Agent": ua.random})
+    response = session.get(url, headers={"User-Agent": ua})
 
     headers = {
         "accept": "application/json, text/javascript, */*; q=0.01",
@@ -40,7 +40,8 @@ def get_categories_apteka911():
         "x-requested-with": "XMLHttpRequest",  # КРИТИЧНО: саме це каже серверу віддати JSON
         # Referer має бути ПОВНИМ URL сторінки препарату
         "referer": f"https://apteka911.ua/ua",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        # "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "user-agent": ua,
     }
     session.cookies.update({
         'site_version': 'desktop',
@@ -111,12 +112,12 @@ def update_categories_db(categories):
 
 
 def create_session():
-    ua = UserAgent()
+    ua = get_user_agent()
     session = requests.Session()
     print('Start session')
 
     session.headers.update({
-        "User-Agent": ua.random,
+        "User-Agent": ua,
         "Accept": "application/json, text/javascript, */*; q=0.01",
         "X-Requested-With": "XMLHttpRequest",
     })
@@ -352,6 +353,36 @@ def get_list_dict(list_search_preparaty):
     ]
 
 
+def save_filters_to_db(query, filters, session_key):
+    """
+        Зберігає фільтри в БД
+    """
+
+    Filters.objects.filter(
+        created_at__lt=timezone.now() - timedelta(hours=2)
+    ).delete()
+
+    objects = []
+
+    for filter_name in filters:
+        for value in filters[filter_name]:
+            objects.append(
+                Filters(
+                    query=query,
+                    session_key=session_key,
+                    pharmacy='apteka911',
+                    filter_name=filter_name,
+                    filter_value=value,
+                    nameNormalized=value.casefold(),
+                )
+            )
+
+    res = Filters.objects.bulk_create(objects)
+    print(f'{len(res)} filters created')
+
+    return
+
+
 def search_preparaty(request, query, session_key):
     """ пошук за назвою препарата """
 
@@ -365,13 +396,56 @@ def search_preparaty(request, query, session_key):
     page = 1
 
     url = f"https://apteka911.ua/ua/shop/search?query={quote(query)}"
+    # url = f"https://apteka911.ua/ua/shop/search/page={page}?query={quote(query)}"
 
     try:
         response = session.get(url, headers=session.headers, timeout=15)
         response.raise_for_status()
+
+
+
+        # for i in range(5):
+        #     r = session.get(url, headers=session.headers, timeout=15)
+        #     print(i, "bg_filter" in r.text)
+
+        # for i in range(5):
+        #     r = session.get(url, headers=session.headers, timeout=35)
+        #     print(session.headers)
+        #
+        #     print(
+        #         i,
+        #         r.status_code,
+        #         len(r.text),
+        #         "bg_filter" in r.text,
+        #         "filter-aside" in r.text,
+        #         "c-cat-filters-ext" in r.text
+        #     )
+        if ("bg_filter" in response.text) and ("filter-aside" in response.text) and ("c-cat-filters-ext" in response.text):
+            print('True:',
+                response.headers.get("Server"),
+                response.headers.get("CF-Cache-Status"),
+                response.headers.get("Age"),
+                response.headers.get("Vary"),
+                response.url,
+            )
+        #         with open("true.html", "w", encoding="utf-8") as f:
+        #             f.write(r.text)
+        else:
+            print('False:',
+                response.headers.get("Server"),
+                response.headers.get("CF-Cache-Status"),
+                response.headers.get("Age"),
+                response.headers.get("Vary"),
+                response.url,
+            )
+        #         with open("false.html", "w", encoding="utf-8") as f:
+        #             f.write(r.text)
+
         html = response.text
+
         # отримаємо кількість сторінок
         total_pages = get_count_pages(html)
+        filters = get_filters(html)
 
         data = get_data_html_page(html)
         if not data:
@@ -405,6 +479,9 @@ def search_preparaty(request, query, session_key):
 
         # зберегти в таблицю пошуку БД
         is_save = save_search_results(query, list_search_preparaty, session_key)
+
+        if filters:
+            save_filters_to_db(query, filters, session_key)
 
         return len(is_save), None
 
@@ -469,6 +546,88 @@ def get_count_pages(html):
 
     return max_page
 
+
+def get_filters(html):
+    """
+        отримання фільтрів
+    """
+    base_filters = ['Дозування', 'Форма випуску', 'Об\'єм', 'Первинна упаковка']
+    filters = {}
+
+    # Шукаємо початок потрібних даних
+    start_keyword = '"ajax_fdata":'
+    start_idx = html.find(start_keyword)
+
+    if start_idx != -1:
+        # Зсуваємо індекс на початок самого об'єкта (після двокрапки)
+        json_start_idx = start_idx + len(start_keyword)
+        json_string = html[json_start_idx:].strip()
+
+        try:
+            # JSONDecoder.raw_decode розпарсить об'єкт, навіть якщо після нього
+            # йде купа іншого HTML/JS коду або якщо він обірваний далі
+            json_data, end_idx = json.JSONDecoder().raw_decode(json_string)
+            print("Дані успішно отримано:")
+
+            data_filters = json_data['ffields']
+            print(json_data['ffields'])  # Тут буде чистий Python-словник з вашими фільтрами
+
+            for data in data_filters.values():
+                if data['fieldName'] in base_filters:
+                    # print(f'fieldName: {data['fieldName']}')
+                    filters_option = [data['options'][value]['foptionName'] for value in data['options']]
+                    # print(f'filters_option: {filters_option}')
+                    filters.update({
+                        data['fieldName']: filters_option
+                    })
+            return filters
+        except json.JSONDecodeError as e:
+            print(f"Помилка парсингу (можливо, дані занадто сильно обірвані): {e}")
+    return None
+
+    # soup = BeautifulSoup(html, "html.parser")
+    #
+    # base_filters = ['Дозування', 'Форма випуску', 'Об\'єм', 'Первинна упаковка']
+    #
+    # print("форма:", "Форма випуску" in soup.get_text())
+    # print("дозування:", "Дозування" in soup.get_text())
+    # print("об'єм:", "Об'єм" in soup.get_text())
+    #
+    # filters = {}
+    #
+    #
+    #
+    # # всі блоки фільтрів
+    # blocks_filter = soup.select("div.bg_filter")
+    #
+    #
+    # for block in blocks_filter:
+    #
+    #     # назва фільтра
+    #     title = block.select_one("a.filter-aside__head")
+    #     if not title:
+    #         continue
+    #
+    #
+    #     filter_name = title.get_text(" ", strip=True) #.replace("Категорія", "Категорія").strip()
+    #
+    #     if filter_name not in base_filters:
+    #         continue
+    #
+    #     values = []
+    #
+    #     for item in block.select("div.filter-aside__dropdown li"):
+    #         text = item.get_text(" ", strip=True)
+    #
+    #         # прибрати кількість "(33)"
+    #         if "(" in text:
+    #             text = text.rsplit("(", 1)[0].strip()
+    #
+    #         values.append(text)
+    #
+    #     filters[filter_name] = values
+    #
+    # return filters
 
 def get_data_html_page(html):
     try:
