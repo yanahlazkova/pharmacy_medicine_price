@@ -14,7 +14,7 @@ from django.db.models.functions import Lower
 from fake_useragent import UserAgent
 from urllib.parse import urljoin, quote
 
-from core.parsers.helper_parser import get_user_agent, save_filters_to_db  # , LIST_PREPARATY
+from core.parsers.helper_parser import get_user_agent, save_filters_to_db, get_dozuvannia_by_pattern  # , LIST_PREPARATY
 from home.models import SearchResult, Filters
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
@@ -416,6 +416,7 @@ def search_preparaty(request, query, session_key):
 
         # отримаємо кількість сторінок
         total_pages = get_count_pages(html)
+
         filters = get_filters(html)
 
         data = get_data_html_page(html)
@@ -523,6 +524,7 @@ def get_filters(html):
         отримання фільтрів
     """
     base_filters = ['Дозування', 'Форма випуску', 'Об\'єм', 'Первинна упаковка', 'Кількість в упаковці']
+    pattern = r":\s*(\d+(?:\.\d+)?)\s*([^/]*?)(?=\s*/|$)"
     filters = {}
 
     # Шукаємо початок потрібних даних
@@ -546,7 +548,8 @@ def get_filters(html):
             for data in data_filters.values():
                 if data['fieldName'] in base_filters:
                     # print(f'fieldName: {data['fieldName']}')
-                    filters_option = [data['options'][value]['foptionName'] for value in data['options']]
+                    options = [data['options'][value]['foptionName'] for value in data['options']]
+                    filters_option = get_dozuvannia_by_pattern(pattern, options) if data['fieldName'] == 'Дозування' else options
                     # print(f'filters_option: {filters_option}')
                     filters.update({
                         data['fieldName']: filters_option

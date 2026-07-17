@@ -12,7 +12,7 @@ from fake_useragent import UserAgent
 from urllib.parse import quote, urljoin
 
 from core.parsers.apteka_dobrogo_dnya.helper_add import get_product_code, get_product_url, get_alias_and_images_by_code
-from core.parsers.helper_parser import get_user_agent, save_filters_to_db
+from core.parsers.helper_parser import get_user_agent, save_filters_to_db, get_dozuvannia_by_pattern
 from home.models import SearchResult, Filters
 
 
@@ -131,6 +131,8 @@ def get_filters(html):
     print("дозування:", "Дозування" in soup.get_text())
     print("Кількість в упаковці:", "Кількість в упаковці" in soup.get_text())
 
+    pattern = r"\s*(\d+(?:\.\d+)?)\s*([^/]*?)(?=\s*/|$)"
+
     filters = {}
 
     # всі блоки фільтрів
@@ -157,7 +159,9 @@ def get_filters(html):
             if text:
                 values.append(text.strip())
 
-        filters[filter_name] = values
+        filter_values = get_dozuvannia_by_pattern(pattern, values) if filter_name == 'Дозування' else values
+
+        filters[filter_name] = filter_values
 
     return filters
 
