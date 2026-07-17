@@ -5,14 +5,15 @@ from datetime import timedelta
 
 import requests
 from bs4 import BeautifulSoup
+from django.db import transaction
 from django.utils import timezone
 from fake_useragent import UserAgent
 
 from urllib.parse import quote, urljoin
 
 from core.parsers.apteka_dobrogo_dnya.helper_add import get_product_code, get_product_url, get_alias_and_images_by_code
-from core.parsers.helper_parser import get_user_agent
-from home.models import SearchResult
+from core.parsers.helper_parser import get_user_agent, save_filters_to_db
+from home.models import SearchResult, Filters
 
 
 def create_session():
@@ -95,6 +96,9 @@ def search_preparaty(request, query, session_key):
         print('Fall session')
 
         is_save = save_search_results(query,list_preparaty, session_key)
+
+        if filters:
+            save_filters_to_db(query,filters,session_key, pharmacy_name='1sa')
 
         return len(is_save), None
 
@@ -211,6 +215,7 @@ def get_data_with_script(soup):
             products = json.loads(products_json)
 
             return products
+
     except Exception as e:
         print(f"Помилка get_data_html_page 1sa: {e}")
         time.sleep(10)  # Довша пауза при помилці
@@ -248,3 +253,6 @@ def save_search_results(query, results, session_key):
         )
 
     return SearchResult.objects.bulk_create(objects)
+
+
+

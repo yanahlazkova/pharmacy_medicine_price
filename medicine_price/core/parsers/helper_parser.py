@@ -1,5 +1,12 @@
 """ загальні методи парсингу """
+from django.db import transaction
+from django.utils import timezone
+from datetime import timedelta
+
 from fake_useragent import UserAgent
+
+from home.models import Filters
+
 
 def get_user_agent():
 
@@ -11,6 +18,44 @@ def get_user_agent():
 
         if not any(x in user_agent for x in ("Android", "iPhone", "iPad", "Mobile")):
             return user_agent
+
+
+
+
+def save_filters_to_db(query, filters, session_key, pharmacy_name):
+    """
+        Зберігає фільтри в БД
+    """
+    # очистити таблицю перед новим пошуком
+    with transaction.atomic():
+        Filters.objects.filter(
+            query=query,
+            session_key=session_key
+        ).delete()
+
+        Filters.objects.filter(
+            created_at__lt=timezone.now() - timedelta(hours=2)
+        ).delete()
+
+    objects = []
+
+    for filter_name in filters:
+        for value in filters[filter_name]:
+            objects.append(
+                Filters(
+                    query=query,
+                    session_key=session_key,
+                    pharmacy=pharmacy_name,
+                    filter_name=filter_name,
+                    filter_value=str(value),
+                    nameNormalized=str(value).casefold(),
+                )
+            )
+
+    res = Filters.objects.bulk_create(objects)
+    print(f'{len(res)} filters created')
+
+    return
 
 
 # import time
