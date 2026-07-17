@@ -152,11 +152,16 @@ class SearchView(HTMXTemplateMixin, ListView):
         return []
 
     def get_list_filters(self):
+        # # Обрані аптеки
+        # selected_pharmacies = self.request.POST.getlist('pharmacies')
+
         # ключ сесії
         session_key = self.request.session.session_key
 
-        filters = Filters.objects.filter(session_key=session_key, query=self.query).values("filter_name", "filter_value")
-        filters_dict = defaultdict(list)
+        filters = Filters.objects.filter(session_key=session_key, query=self.query).values("filter_name", "filter_value").distinct()
+
+        filters_dict = defaultdict(list) # словник зі списком
+
         for item in filters:
             filters_dict[item["filter_name"]].append(item["filter_value"])
 

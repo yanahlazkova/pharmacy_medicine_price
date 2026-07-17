@@ -1,8 +1,19 @@
 """ загальні методи парсингу """
+import re
+
+from django.db import transaction
+from django.utils import timezone
+from datetime import timedelta
+
 from fake_useragent import UserAgent
 
-def get_user_agent():
+from home.models import Filters
 
+
+def get_user_agent():
+    """
+        повертає User-agent десктопний
+    """
     ua = UserAgent()
 
     while True:
@@ -11,6 +22,58 @@ def get_user_agent():
 
         if not any(x in user_agent for x in ("Android", "iPhone", "iPad", "Mobile")):
             return user_agent
+
+
+def save_filters_to_db(query, filters, session_key, pharmacy_name):
+    """
+        Зберігає фільтри в БД
+    """
+    # очистити таблицю перед новим пошуком
+    with transaction.atomic():
+        Filters.objects.filter(
+            query=query,
+            session_key=session_key,
+            pharmacy=pharmacy_name,
+        ).delete()
+
+        Filters.objects.filter(
+            created_at__lt=timezone.now() - timedelta(hours=2)
+        ).delete()
+
+    objects = []
+
+    for filter_name in filters:
+        for value in filters[filter_name]:
+            objects.append(
+                Filters(
+                    query=query,
+                    session_key=session_key,
+                    pharmacy=pharmacy_name,
+                    filter_name=filter_name,
+                    filter_value=str(value),
+                    nameNormalized=str(value).casefold(),
+                )
+            )
+
+    res = Filters.objects.bulk_create(objects)
+    print(f'{len(res)} filters created')
+
+    return
+
+
+def get_dozuvannia_by_pattern(pattern, text_list):
+    # Універсальний шаблон
+
+    list_dozuvannia = []
+
+    for text in text_list:
+        match = re.search(pattern, text)
+        if match:
+            number = match.group(1)  # Завжди отримає число
+            unit = match.group(2).strip()  # Отримає одиницю виміру (якщо вона є) та прибере зайві пробіли
+            list_dozuvannia.append(f'{number} {unit}')
+
+    return list_dozuvannia
 
 
 # import time

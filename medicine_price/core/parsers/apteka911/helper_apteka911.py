@@ -14,7 +14,7 @@ from django.db.models.functions import Lower
 from fake_useragent import UserAgent
 from urllib.parse import urljoin, quote
 
-from core.parsers.helper_parser import get_user_agent #, LIST_PREPARATY
+from core.parsers.helper_parser import get_user_agent, save_filters_to_db, get_dozuvannia_by_pattern  # , LIST_PREPARATY
 from home.models import SearchResult, Filters
 from pharmacies.models import CategoryApteka911, DrugApteka911
 
@@ -354,42 +354,6 @@ def get_list_dict(list_search_preparaty):
     ]
 
 
-def save_filters_to_db(query, filters, session_key):
-    """
-        Зберігає фільтри в БД
-    """
-    # очистити таблицю перед новим пошуком
-    with transaction.atomic():
-        Filters.objects.filter(
-            query=query,
-            session_key=session_key
-        ).delete()
-
-        Filters.objects.filter(
-            created_at__lt=timezone.now() - timedelta(hours=2)
-        ).delete()
-
-    objects = []
-
-    for filter_name in filters:
-        for value in filters[filter_name]:
-            objects.append(
-                Filters(
-                    query=query,
-                    session_key=session_key,
-                    pharmacy='apteka911',
-                    filter_name=filter_name,
-                    filter_value=str(value),
-                    nameNormalized=str(value).casefold(),
-                )
-            )
-
-    res = Filters.objects.bulk_create(objects)
-    print(f'{len(res)} filters created')
-
-    return
-
-
 def search_preparaty(request, query, session_key):
     """ пошук за назвою препарата """
 
@@ -452,6 +416,7 @@ def search_preparaty(request, query, session_key):
 
         # отримаємо кількість сторінок
         total_pages = get_count_pages(html)
+
         filters = get_filters(html)
 
         data = get_data_html_page(html)
@@ -488,7 +453,7 @@ def search_preparaty(request, query, session_key):
         is_save = save_search_results(query, list_search_preparaty, session_key)
 
         if filters:
-            save_filters_to_db(query, filters, session_key)
+            save_filters_to_db(query, filters, session_key, pharmacy_name='apteka911')
 
         return len(is_save), None
 
@@ -559,6 +524,7 @@ def get_filters(html):
         отримання фільтрів
     """
     base_filters = ['Дозування', 'Форма випуску', 'Об\'єм', 'Первинна упаковка', 'Кількість в упаковці']
+    pattern = r":\s*(\d+(?:\.\d+)?)\s*([^/]*?)(?=\s*/|$)"
     filters = {}
 
     # Шукаємо початок потрібних даних
@@ -582,7 +548,8 @@ def get_filters(html):
             for data in data_filters.values():
                 if data['fieldName'] in base_filters:
                     # print(f'fieldName: {data['fieldName']}')
-                    filters_option = [data['options'][value]['foptionName'] for value in data['options']]
+                    options = [data['options'][value]['foptionName'] for value in data['options']]
+                    filters_option = get_dozuvannia_by_pattern(pattern, options) if data['fieldName'] == 'Дозування' else options
                     # print(f'filters_option: {filters_option}')
                     filters.update({
                         data['fieldName']: filters_option
